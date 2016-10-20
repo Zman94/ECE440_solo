@@ -1,3 +1,3 @@
-i = "python"
-i=i.upper()
-print i[0]=="P"
+i = "0 0 0"
+x = i.split()
+print x

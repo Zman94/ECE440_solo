@@ -49,29 +49,33 @@ def game_loop(board, players):
     heuristic2 = define_heuristic(players[1])
 
     winner1, winner2 = False, False
-    while winner1 == False and winner2 == False:
+    while True:
         winner1 = player_move(board, heuristic1, True)
         print
         print "White Move"
         print_board(board)
+        if winner1:
+            break
         winner2 = player_move(board, heuristic2, False)
         print
         print "Black Move"
         print_board(board)
+        if winner2:
+            break
 
 def define_heuristic(strategy):
     ### Define the heuristic for each strategy
     heuristic = list()
     if strategy[1] == "a":  # Aggressive
         heuristic.append(4) # Your pieces
-        heuristic.append(6) # Opponent's pieces
+        heuristic.append(-6) # Opponent's pieces
         heuristic.append(3) # Position
         heuristic.append(-2)# Opponent's position
         heuristic.append(3) # Center
         return
     elif strategy[1] == "d":# Defensive
         heuristic.append(6) # Your pieces
-        heuristic.append(4) # Opponent's pieces
+        heuristic.append(-4) # Opponent's pieces
         heuristic.append(2) # Position
         heuristic.append(-3)# Opponent's position
         heuristic.append(3) # Center
@@ -81,7 +85,196 @@ def define_heuristic(strategy):
         sys.exit()
     return heuristic
 
+def calulate_score(board, heuristic, player):
+    points = 0
+
+    for x in range(8):
+        for y in range(8):
+            if board[y][x]=="W" and player:
+                points+=heuristic[0]
+                points+=(7-y)*heuristic[2]
+                if y > 2 and y < 5 and x > 2 and x < 5:
+                    points+=heuristic[4]
+            elif board[y][x]=="W" and not player:
+                points+=heuristic[1]
+                points+=(7-y)*heuristic[3]
+            elif board[y][x]=="B" and player:
+                points+=heuristic[1]
+                points+=y*heuristic[3]
+            elif board[y][x]=="B" and not player:
+                points+=heuristic[0]
+                points+=y*heuristic[2]
+                if y > 2 and y < 5 and x > 2 and x < 5:
+                    points+=heuristic[4]
+
+def generate_movetree(moveTree, board, strategy, player):
+    # Find each move for first layer of minimax:
+    layerPos="0 0" # "'parent' 'board'"
+    moveTree[0]=list()
+    for x in range(8):
+        for y in range(8):
+            if player:
+                if board[y][x]=="W":
+                    if y-1 >= 0 and x-1 >= 0 and board[y-1][x-1]==".":
+                        boardCopy=deepcopy(board)
+                        boardCopy[y-1][x-1]="W"
+                        boardCopy[y][x]="."
+                        moveTree[0].append({layerPos:boardCopy})
+
+                        # Incrememnt the board number
+                        temp=layerPos.split()
+                        temp[1]=str(int(temp[1])+1)
+                        layerPos=temp[0]+" "+temp[1]
+
+                    if y-1 >= 0 and board[y-1][x]==".":
+                        boardCopy=deepcopy(board)
+                        boardCopy[y-1][x]="W"
+                        boardCopy[y][x]="."
+                        moveTree[0].append({layerPos:boardCopy})
+
+                        # Incrememnt the board number
+                        temp=layerPos.split()
+                        temp[1]=str(int(temp[1])+1)
+                        layerPos=temp[0]+" "+temp[1]
+                    if y-1 >= 0 and x+1 <= 7 and board[y-1][x+1]==".":
+                        boardCopy=deepcopy(board)
+                        boardCopy[y-1][x+1]="W"
+                        boardCopy[y][x]="."
+                        moveTree[0].append({layerPos:boardCopy})
+
+                        # Incrememnt the board number
+                        temp=layerPos.split()
+                        temp[1]=str(int(temp[1])+1)
+                        layerPos=temp[0]+" "+temp[1]
+            else:
+                if board[y][x]=="B":
+                    if y+1 <= 7 and x-1 >= 0 and board[y+1][x+1]==".":
+                        boardCopy=deepcopy(board)
+                        boardCopy[y-1][x-1]="W"
+                        boardCopy[y][x]="."
+                        moveTree[0].append({layerPos:boardCopy})
+
+                        # Incrememnt the board number
+                        temp=layerPos.split()
+                        temp[1]=str(int(temp[1])+1)
+                        layerPos=temp[0]+" "+temp[1]
+
+                    if y+1 <= 7 and board[y+1][x]==".":
+                        boardCopy=deepcopy(board)
+                        boardCopy[y-1][x]="W"
+                        boardCopy[y][x]="."
+                        moveTree[0].append({layerPos:boardCopy})
+
+                        # Incrememnt the board number
+                        temp=layerPos.split()
+                        temp[1]=str(int(temp[1])+1)
+                        layerPos=temp[0]+" "+temp[1]
+                    if y+1 <= 7 and x+1 <= 7 and board[y+1][x+1]==".":
+                        boardCopy=deepcopy(board)
+                        boardCopy[y-1][x+1]="W"
+                        boardCopy[y][x]="."
+                        moveTree[0].append({layerPos:boardCopy})
+
+                        # Incrememnt the board number
+                        temp=layerPos.split()
+                        temp[1]=str(int(temp[1])+1)
+                        layerPos=temp[0]+" "+temp[1]
+    return
+
+    # Find next layer of tree. Other player's turn
+    layerPos="10"
+    moveTree[1] = list()
+    for boardOption in moveTree[0]:
+        for x in range(8):
+            for y in range(8):
+                if not player:
+                    if board[y][x]=="W":
+                        if y-1 >= 0 and x-1 >= 0:
+                            boardCopy=deepcopy(board)
+                            boardCopy[y-1][x-1]="W"
+                            boardCopy[y][x]="."
+                            moveTree[1].append(boardCopy)
+                        if y-1 >= 0:
+                            boardCopy=deepcopy(board)
+                            boardCopy[y-1][x]="W"
+                            boardCopy[y][x]="."
+                            moveTree[1].append(boardCopy)
+                        if y-1 >= 0 and x+1 <= 7:
+                            boardCopy=deepcopy(board)
+                            boardCopy[y-1][x+1]="W"
+                            boardCopy[y][x]="."
+                            moveTree[1].append(boardCopy)
+                else:
+                    if board[y][x]=="B":
+                        if y+1 <= 7 and x-1 >= 0:
+                            boardCopy=deepcopy(board)
+                            boardCopy[y+1][x-1]="B"
+                            boardCopy[y][x]="."
+                            moveTree[1].append(boardCopy)
+                        if y+1 <= 7:
+                            boardCopy=deepcopy(board)
+                            boardCopy[y+1][x]="B"
+                            boardCopy[y][x]="."
+                            moveTree[1].append(boardCopy)
+                        if y+1 <= 7 and x+1 <= 7:
+                            boardCopy=deepcopy(board)
+                            boardCopy[y+1][x+1]="B"
+                            boardCopy[y][x]="."
+                            moveTree[1].append(boardCopy)
+
+    # Find third layer of tree
+    moveTree[2] = list()
+    for boardOption in moveTree[2]:
+        for x in range(8):
+            for y in range(8):
+                if player:
+                    if board[y][x]=="W":
+                        if y-1 >= 0 and x-1 >= 0:
+                            boardCopy=deepcopy(board)
+                            boardCopy[y-1][x-1]="W"
+                            boardCopy[y][x]="."
+                            moveTree[2].append(boardCopy)
+                        if y-1 >= 0:
+                            boardCopy=deepcopy(board)
+                            boardCopy[y-1][x]="W"
+                            boardCopy[y][x]="."
+                            moveTree[2].append(boardCopy)
+                        if y-1 >= 0 and x+1 <= 7:
+                            boardCopy=deepcopy(board)
+                            boardCopy[y-1][x+1]="W"
+                            boardCopy[y][x]="."
+                            moveTree[2].append(boardCopy)
+                else:
+                    if board[y][x]=="B":
+                        if y+1 <= 7 and x-1 >= 0:
+                            boardCopy=deepcopy(board)
+                            boardCopy[y+1][x-1]="B"
+                            boardCopy[y][x]="."
+                            moveTree[2].append(boardCopy)
+                        if y+1 <= 7:
+                            boardCopy=deepcopy(board)
+                            boardCopy[y+1][x]="B"
+                            boardCopy[y][x]="."
+                            moveTree[2].append(boardCopy)
+                        if y+1 <= 7 and x+1 <= 7:
+                            boardCopy=deepcopy(board)
+                            boardCopy[y+1][x+1]="B"
+                            boardCopy[y][x]="."
+                            moveTree[2].append(boardCopy)
+
+
 def player_move(board, strategy, player):
+
+    moveTree = {}
+    ### Check minimax trees ###
+    generate_movetree(moveTree, board, strategy, player)
+
+    for x in moveTree:
+        for dic in moveTree[x]:
+            for key in dic:
+                print key
+                print_board(dic[key])
+                print
 
     ### Check for a winner ###
     for x in range(8):
@@ -90,7 +283,7 @@ def player_move(board, strategy, player):
         if board[7][x]=="B" and player==False:
             return True
 
-    return False
+    return True
 
 if __name__ == "__main__":
     # pdb.set_trace()
