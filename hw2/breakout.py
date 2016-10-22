@@ -60,6 +60,7 @@ def game_loop(board, players):
         winner2 = player_move(board, heuristic2, False)
         print
         print "Black Move"
+        print
         print_board(board)
         if winner2:
             break
@@ -68,17 +69,17 @@ def define_heuristic(strategy):
     ### Define the heuristic for each strategy
     heuristic = list()
     if strategy[1] == "a":  # Aggressive
-        heuristic.append(4) # Your pieces
-        heuristic.append(-6) # Opponent's pieces
-        heuristic.append(3) # Position
-        heuristic.append(-2)# Opponent's position
-        heuristic.append(3) # Center
+        heuristic.append(25) # Your pieces
+        heuristic.append(-50)# Opponent's pieces
+        heuristic.append(20) # Position
+        heuristic.append(-10) # Opponent's position
+        heuristic.append(5) # Center
     elif strategy[1] == "d":# Defensive
-        heuristic.append(6) # Your pieces
-        heuristic.append(-4) # Opponent's pieces
-        heuristic.append(2) # Position
-        heuristic.append(-3)# Opponent's position
-        heuristic.append(3) # Center
+        heuristic.append(50) # Your pieces
+        heuristic.append(-25)# Opponent's pieces
+        heuristic.append(10) # Position
+        heuristic.append(-20) # Opponent's position
+        heuristic.append(5) # Center
     else:
         print "Make sure that player strategies are correct then rerun."
         sys.exit()
@@ -91,30 +92,30 @@ def calculate_score(board, heuristic, player):
         for y in range(8):
             if board[y][x]=="W" and player:
                 points+=heuristic[0]
-                points+=(7-y)*heuristic[2]
+                points+=heuristic[2]*(7-y)
                 if y > 2 and y < 5 and x > 2 and x < 5:
                     points+=heuristic[4]
             elif board[y][x]=="W" and not player:
                 points+=heuristic[1]
-                points+=(7-y)*heuristic[3]
+                points-=heuristic[3]*(7-y)
             elif board[y][x]=="B" and player:
                 points+=heuristic[1]
-                points+=y*heuristic[3]
+                points-=heuristic[3]*y
             elif board[y][x]=="B" and not player:
                 points+=heuristic[0]
-                points+=y*heuristic[2]
+                points+=heuristic[2]*y
                 if y > 2 and y < 5 and x > 2 and x < 5:
                     points+=heuristic[4]
 
     return points
 
 def generate_movetree(board, strategy, player, layer, min_max):
-    if layer > 2:
-        return calculate_score(board, strategy, player)
+    if layer > 2: # if this is even, must return negative value below
+        return -calculate_score(board, strategy, player)
     if min_max:
-        maxVal=-50
+        maxVal=-1000
     else:
-        maxVal=50
+        maxVal=1000
     # Find each move for first layer of minimax
     for x in range(8):
         for y in range(8):
