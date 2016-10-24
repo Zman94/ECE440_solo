@@ -60,6 +60,10 @@ def game_loop(board, players):
     while True:
         winner1 = player_move(board, heuristic1, True, players[0], nodes_expanded)
         white_moves+=1
+        print
+        print "White's move"
+        print
+        print_board(board)
         if winner1:
             for x in range(8):
                 for y in range(8):
@@ -79,6 +83,10 @@ def game_loop(board, players):
             break
         winner2 = player_move(board, heuristic2, False, players[1], nodes_expanded)
         black_moves+=1
+        print
+        print "Black's move"
+        print
+        print_board(board)
         if winner2:
             for x in range(8):
                 for y in range(8):
@@ -275,23 +283,23 @@ def generate_movetree_ab(board, strategy, player, layer, min_max, nodes_expanded
             nodes_expanded[1]+=1
         else:
             nodes_expanded[0]+=1
-        return calculate_score(board, strategy, player)
-    boardFinal=deepcopy(board)
+        l=calculate_score(board, strategy, player)
+        return l
     if min_max:
-        maxVal=-5000
+        maxVal=-7000
         ab_prune.insert(layer,maxVal)
         tempMax=maxVal
     else:
-        maxVal=5000
+        maxVal=7000
         ab_prune.insert(layer,maxVal)
         tempMax=maxVal
     # Find each move for first layer of minimax
     # If statement speeds up
-    if not player:
-        y = 7
-    else:
-        y = 0
     for x in range(8):
+        if not player:
+            y = 7
+        else:
+            y = 0
         while (y < 8 and player) or (y >=0 and not player):
             if player:
                 if board[y][x]=="W":
@@ -421,7 +429,7 @@ def generate_movetree_ab(board, strategy, player, layer, min_max, nodes_expanded
             else:
                 y-=1
 
-    if layer==0:
+    if layer==0 and (tempMax!=7000 or tempMax!=-7000):
         for x in range(8):
             for y in range(8):
                 board[y][x]=boardFinal[y][x]
