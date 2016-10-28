@@ -35,7 +35,7 @@ def main():
                    9: [[[1 for i in range(M)] for j in range(M)],[[1 for i in range(M)] for j in range(M)]]}
     read_trainingVal(trainingValueFile, trainVal)
     train_network(trainingDigitFile, trainVal, trainedList)
-    write_training(output_file, trainedList)
+    # write_training(output_file, trainedList)
     read_testVal(testValueFile, testVal)
     test_values(testDigitFile, testVal, trainedList, numbers_classified)
     determine_accuracy(testVal, numbers_classified)
