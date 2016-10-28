@@ -22,17 +22,17 @@ def main():
     testVal = list()
     ### Initialize the training lists with one gray and one black pixel in each location ###
     ### Initialize to one for laplacian smoothing ###
-    ### KEY : [Number][black/gray][row][column] ###
-    trainedList = {0: [[[1 for i in range(M)] for j in range(M)],[[1 for i in range(M)] for j in range(M)]],
-                   1: [[[1 for i in range(M)] for j in range(M)],[[1 for i in range(M)] for j in range(M)]],
-                   2: [[[1 for i in range(M)] for j in range(M)],[[1 for i in range(M)] for j in range(M)]],
-                   3: [[[1 for i in range(M)] for j in range(M)],[[1 for i in range(M)] for j in range(M)]],
-                   4: [[[1 for i in range(M)] for j in range(M)],[[1 for i in range(M)] for j in range(M)]],
-                   5: [[[1 for i in range(M)] for j in range(M)],[[1 for i in range(M)] for j in range(M)]],
-                   6: [[[1 for i in range(M)] for j in range(M)],[[1 for i in range(M)] for j in range(M)]],
-                   7: [[[1 for i in range(M)] for j in range(M)],[[1 for i in range(M)] for j in range(M)]],
-                   8: [[[1 for i in range(M)] for j in range(M)],[[1 for i in range(M)] for j in range(M)]],
-                   9: [[[1 for i in range(M)] for j in range(M)],[[1 for i in range(M)] for j in range(M)]]}
+    ### KEY : [Number][row][column] ###
+    trainedList = {0: [[1 for i in range(M)] for j in range(M)],
+                   1: [[1 for i in range(M)] for j in range(M)],
+                   2: [[1 for i in range(M)] for j in range(M)],
+                   3: [[1 for i in range(M)] for j in range(M)],
+                   4: [[1 for i in range(M)] for j in range(M)],
+                   5: [[1 for i in range(M)] for j in range(M)],
+                   6: [[1 for i in range(M)] for j in range(M)],
+                   7: [[1 for i in range(M)] for j in range(M)],
+                   8: [[1 for i in range(M)] for j in range(M)],
+                   9: [[1 for i in range(M)] for j in range(M)]}
     read_trainingVal(trainingValueFile, trainVal)
     train_network(trainingDigitFile, trainVal, trainedList)
     # write_training(output_file, trainedList)
@@ -53,8 +53,8 @@ def read_testVal(input_file, testVal):
 
 def train_network(input_file, trainVal, trainedList):
     trainValNumber = 0
-    i = 0 #line in picture
-    j = 0 #pixel in line
+    i = 0 # line in picture
+    j = 0 # pixel in line
     with open(input_file) as f:
         curNumber = int(trainVal[trainValNumber])
         for line in f:
@@ -69,14 +69,9 @@ def train_network(input_file, trainVal, trainedList):
             for letter in line:
                 if letter == '\n':
                     continue
-                ### If gray, add .5 to black and 1 to gray ###
-                elif letter == '+':
-                    trainedList[curNumber][0][i][j]+=.5
-                    trainedList[curNumber][1][i][j]+=1
-                ### If black, add .5 to gray and 1 to black ###
-                elif letter == '#':
-                    trainedList[curNumber][0][i][j]+=1
-                    trainedList[curNumber][1][i][j]+=.5
+                ### If gray or black, add 1 point to colored ###
+                elif letter == '+' or letter == '#':
+                    trainedList[curNumber][i][j]+=1
                 j+=1
             i+=1
     ### Normalize values ###
@@ -84,10 +79,9 @@ def train_network(input_file, trainVal, trainedList):
     ### Convert to float ###
     normalize_number*=1.0
     for x in range(10):
-        for color in range(2):
-            for j in range(28):
-                for i in range(28):
-                    trainedList[x][color][j][i]/=normalize_number
+        for j in range(28):
+            for i in range(28):
+                trainedList[x][j][i]/=normalize_number
 
 def test_values(input_file, testVal, trainedList, numbers_classified):
     probability_list = [1,1,1,1,1,1,1,1,1,1]
@@ -109,10 +103,8 @@ def test_values(input_file, testVal, trainedList, numbers_classified):
                 for letter in line:
                     if letter == '\n':
                         continue
-                    elif letter == '+':
-                        probability_list[curNumber]*=(1+trainedList[curNumber][1][i][j])
-                    elif letter == '#':
-                        probability_list[curNumber]*=(1+trainedList[curNumber][0][i][j])
+                    elif letter == '+' or letter == '#':
+                        probability_list[curNumber]*=(1+trainedList[curNumber][i][j])
                     j+=1
             i+=1
 
@@ -129,11 +121,10 @@ def determine_accuracy(testVal, numbers_classified):
     total_numbers = len(numbers_classified)
     correct_number = 0
     for x in range(total_numbers):
-        print(numbers_classified[x],testVal[x])
+        # print(numbers_classified[x],testVal[x])
         if numbers_classified[x] == int(testVal[x]):
             correct_number+=1
-    print(total_numbers)
-    print(correct_number * 1.0 / total_numbers)
+    print("Out of " + str(total_numbers) + " total numbers, " + str(correct_number) + " numbers were correctly classified with an accuracy of ", str(correct_number * 1.0 / total_numbers))
 
 def write_training(output_file, data):
     with open(output_file, 'w') as outfile:
