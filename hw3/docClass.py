@@ -1,5 +1,6 @@
 from __future__ import print_function
 from copy import deepcopy
+import sys
 import time
 import math
 import pdb
@@ -7,57 +8,48 @@ import pdb
 start_time = time.time()
 
 def main():
+    if len(sys.argv)!=3:
+        print("Not enough arguments.")
+        return
     ### Files to train from and save training data ###
-    trainingDigitFile = "./digitdata/trainingimages"
-    trainingValueFile = "./digitdata/traininglabels"
-    output_file = "./training.txt"
-    ### Files to test against ###
-    testDigitFile = "./digitdata/testimages"
-    testValueFile = "./digitdata/testlabels"
-    ### Size of picture in pixels ###
-    M = 28
+    trainingFile = "./movie_review/rt-train.txt"
+    testFile = "./movie_review/rt-test.txt"
+    # trainingFile = "./fisher_2topic/fisher_train_2topic.txt"
+    # testFile = "./fisher_2topic/fisher_test_2topic.txt"
     ### LaPlace smoothing value ###
     LP = .1
-    ### Used to calculate the prior probability ###
-    classCount = list()
-    for x in range(10):
-        classCount.append(0)
-    ### List to display numbers generated from AI ###
-    numbers_classified = list()
+    ### Word list (needs to be converted into a dictionary) ###
     trainVal = list()
-    testVal = list()
-    confusionMatrix = [[0 for i in range(10)] for j in range(10)]
-    ### Initialize the training lists with one gray and one black pixel in each location ###
-    ### Initialize to one for laplacian smoothing ###
-    ### KEY : [Number][row][column] ###
-    trainedList = {0: [[LP for i in range(M)] for j in range(M)],
-                   1: [[LP for i in range(M)] for j in range(M)],
-                   2: [[LP for i in range(M)] for j in range(M)],
-                   3: [[LP for i in range(M)] for j in range(M)],
-                   4: [[LP for i in range(M)] for j in range(M)],
-                   5: [[LP for i in range(M)] for j in range(M)],
-                   6: [[LP for i in range(M)] for j in range(M)],
-                   7: [[LP for i in range(M)] for j in range(M)],
-                   8: [[LP for i in range(M)] for j in range(M)],
-                   9: [[LP for i in range(M)] for j in range(M)]}
-    read_trainingVal(trainingValueFile, trainVal)
-    train_network(trainingDigitFile, trainVal, trainedList, classCount, LP, M)
+    docVals = list()
+    trainDicts = list()
+
+    read_trainingVal(trainingFile, trainVal)
+    for x in trainVal:
+        docVals.append(int(x[0]))
+        del x[0]
+    create_dict(trainVal, trainDicts)
+    print(trainDicts)
+    # train_network(trainingFile, trainVal, trainedList, classCount, LP, M)
     # write_training(output_file, trainedList)
-    read_testVal(testValueFile, testVal)
-    test_values(testDigitFile, testVal, trainedList, numbers_classified, classCount, M)
-    determine_accuracy(testVal, numbers_classified, confusionMatrix)
-    print_odds_ratios(trainedList)
+    # read_testVal(testValueFile, testVal)
+    # test_values(testDigitFile, testVal, trainedList, numbers_classified, classCount, M)
+    # determine_accuracy(testVal, numbers_classified, confusionMatrix)
+    # print_odds_ratios(trainedList)
     return
 
 def read_trainingVal(input_file, trainVal):
     with open(input_file) as f:
         for line in f:
-            trainVal.append(line[0])
+            line = line.replace("\n", "")
+            trainVal.append(line.split(" "))
 
-def read_testVal(input_file, testVal):
-    with open(input_file) as f:
-        for line in f:
-            testVal.append(line[0])
+def create_dict(trainVal, trainDicts):
+    tempDict = dict()
+    for x in trainVal:
+        for y in x:
+            temp = y.split(":")
+            tempDict[temp[0]] = temp[1]
+        trainDicts.append(tempDict)
 
 def train_network(input_file, trainVal, trainedList, classCount, LP, M):
     trainValNumber = 0
