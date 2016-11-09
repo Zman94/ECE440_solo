@@ -1,5 +1,6 @@
 from __future__ import print_function
 from copy import deepcopy
+from collections import defaultdict
 import sys
 import time
 import math
@@ -20,16 +21,19 @@ def main():
     LP = .1
     ### Word list (needs to be converted into a dictionary) ###
     trainVal = list()
+    ### 1 or -1 depending on review ###
     docVals = list()
+    ### Dictionary of words and their frequency ###
     trainDicts = list()
-
+    ### Trained value list to test based on ###
+    trained_network = list()
+    
     read_trainingVal(trainingFile, trainVal)
     for x in trainVal:
         docVals.append(int(x[0]))
         del x[0]
     create_dict(trainVal, trainDicts)
-    print(trainDicts)
-    # train_network(trainingFile, trainVal, trainedList, classCount, LP, M)
+    train_network_b(docVals, trainDicts, trained_network, LP) 
     # write_training(output_file, trainedList)
     # read_testVal(testValueFile, testVal)
     # test_values(testDigitFile, testVal, trainedList, numbers_classified, classCount, M)
@@ -44,57 +48,35 @@ def read_trainingVal(input_file, trainVal):
             trainVal.append(line.split(" "))
 
 def create_dict(trainVal, trainDicts):
-    tempDict = dict()
+    runs = 0
     for x in trainVal:
+        tempDict = dict()
         for y in x:
             temp = y.split(":")
-            tempDict[temp[0]] = temp[1]
+            tempDict[temp[0]] = int(temp[1])
         trainDicts.append(tempDict)
 
-def train_network(input_file, trainVal, trainedList, classCount, LP, M):
-    trainValNumber = 0
-    firstTime = True
-    i = 0 # line in picture
-    j = 0 # pixel in line
-    with open(input_file) as f:
-        curNumber = int(trainVal[trainValNumber])
-        classCount[curNumber]+=1
-        for line in f:
-            if firstTime == True:
-                firstTime = False
-                continue
-            if i >= M:
-                trainValNumber+=1
-                if trainValNumber==len(trainVal):
-                    print("Error: More Train Values than Train Digits")
-                    sys.exit()
-                curNumber = int(trainVal[trainValNumber])
-                classCount[curNumber]+=1
-                i = 0
-            j = 0
-            for letter in line:
-                if letter == '\n':
-                    continue
-                ### If gray or black, add 1 point to colored ###
-                elif letter == '+' or letter == '#':
-                    trainedList[curNumber][i][j]+=1
-                j+=1
-            i+=1
-    # for x in range(10):
-    #     for j in range(10):
-    #         print(trainedList[x][j])
-    #     print()
-    for x in range(10):
-        for j in range(28):
-            for i in range(28):
-                trainedList[x][j][i]/=(classCount[x]*1.0+LP*2.0)
-        # print(trainedList[x])
-    ### Normalize classCount ###
-    normalize_count_number = len(trainVal)
-    normalize_count_number*=1.0
-    for x in range(10):
-        classCount[x]/=normalize_count_number
-        classCount[x] = math.log(classCount[x])
+def train_network_b(docVals, trainDicts, trained_network, LP):
+    positive = 0.0
+    negative = 0.0
+    count=-1
+
+
+    trained_network.append(defaultdict(lambda: 0)) #index 0 is negative
+    trained_network.append(defaultdict(lambda: 0)) #index 1 is positive
+    for x in range(len(docVals)):
+        if docVals[x] < 0:
+            negative+=1
+            for y in trainDicts[x].keys():
+                trained_network[0][y]+=1
+        else:
+            positive+=1
+            for y in trainDicts[x]:
+                trained_network[1][y]+=1
+        
+    for x in trained_network:
+        for y in x.values():
+            y+=LP
 
 def test_values(input_file, testVal, trainedList, numbers_classified, classCount, M):
     ### Start the probabilities at those of probability for a class ###
