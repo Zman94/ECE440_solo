@@ -36,7 +36,7 @@ def main():
         del x[0]
     create_dict(trainVal, trainDicts)
     train_network_b(docVals, trainDicts, trained_network, LP)
-    # write_training(output_file, trained_network)
+    write_training(output_file, trained_network)
     ### Get dictionary of values to test on ###
     ### Can reuse variables because our trained_network holds all our data ###
     trainVal = list()
@@ -49,6 +49,7 @@ def main():
         docVals.append(int(x[0]))
         del x[0]
     create_dict(trainVal, trainDicts)
+    return
     test_values(trainDicts, generated_content, trained_network)
     determine_accuracy(generated_content, docVals)
     # print_odds_ratios(trainedList)
@@ -70,15 +71,11 @@ def create_dict(trainVal, trainDicts):
         trainDicts.append(tempDict)
 
 def train_network_b(docVals, trainDicts, trained_network, LP):
-    total = list()
-    total.append(0.0)
-    total.append(0.0)
-    count=-1
+    total = [0, 0]
 
-
-    ### Set default values == 1/(number of values per feature)) ###
-    trained_network.append(defaultdict(lambda: .5)) #index 0 is negative reviews
-    trained_network.append(defaultdict(lambda: .5)) #index 1 is positive reviews
+    ### Set default values = to LP smoothing value ###
+    trained_network.append(defaultdict(lambda: LP)) #index 0 is negative reviews
+    trained_network.append(defaultdict(lambda: LP)) #index 1 is positive reviews
     for x in range(len(docVals)):
         if docVals[x] < 0:
             total[0]+=1
@@ -89,13 +86,13 @@ def train_network_b(docVals, trainDicts, trained_network, LP):
             for y in trainDicts[x]:
                 trained_network[1][y]+=1
 
-    for x in trained_network:
-        for y in x.values():
-            y+=LP
-
     for i in range(2):
         for y in trained_network[i].iterkeys():
             trained_network[i][y]/=(1.0*(total[i]+LP*2))
+
+    ### set the default value = to 1/number of choices per feature ###
+    trained_network[0] = defaultdict(lambda: .5, trained_network[0])
+    trained_network[1] = defaultdict(lambda: .5, trained_network[1])
 
 def write_training(output_file, data):
     with open(output_file, 'w') as outfile:
@@ -109,16 +106,27 @@ def write_training(output_file, data):
 
 def test_values(trainDicts, generated_content, trained_network):
     probabilities = [0,0] #0 is negative, 1 is positive
+    # for x in trainDicts:
+    #     print(x)
+    # return
     for x in trainDicts:
-        for y in x.keys():
-            trained_network[0][y]
-            probabilities[0]+=math.log(trained_network[0][y])
-            probabilities[1]+=math.log(trained_network[1][y])
+        for y in x.values():
+            print(trained_network[0][y])
+            print(trained_network[1][y])
+        return
+        print(x)
+        for i in range(2):
+            for y in trained_network[i].keys():
+                if y in x.values():
+                    probabilities[i]+=math.log(trained_network[i][y])
+                else:
+                    probabilities[i]+=math.log(1-trained_network[i][y])
         ### Classify Document ###
         if probabilities[0] > probabilities[1]:
             generated_content.append(-1)
         else:
             generated_content.append(1)
+        print("probabilities =",probabilities)
         probabilities = [0,0]
 
 def determine_accuracy(generated_content, docVals):
