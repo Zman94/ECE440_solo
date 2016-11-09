@@ -13,10 +13,10 @@ def main():
         print("Not enough arguments.")
         return
     ### Files to train from and save training data ###
-    trainingFile = "./movie_review/rt-train.txt"
-    testFile = "./movie_review/rt-test.txt"
-    # trainingFile = "./fisher_2topic/fisher_train_2topic.txt"
-    # testFile = "./fisher_2topic/fisher_test_2topic.txt"
+    # trainingFile = "./movie_review/rt-train.txt"
+    # testFile = "./movie_review/rt-test.txt"
+    trainingFile = "./fisher_2topic/fisher_train_2topic.txt"
+    testFile = "./fisher_2topic/fisher_test_2topic.txt"
     ### File to write training data to if you want to save it ###
     output_file = "./trainingDocClass.txt"
     ### LaPlace smoothing value ###
@@ -29,14 +29,19 @@ def main():
     trainDicts = list()
     ### Trained value list to test based on ###
     trained_network = list()
+    ### Holds the probablility of class1 / class2 ###
+    oddsRatio = dict()
+    ### Holds the probability of each class ###
+    classRatio = 0.0
 
     read_data(trainingFile, trainVal)
     for x in trainVal:
         docVals.append(int(x[0]))
         del x[0]
     create_dict(trainVal, trainDicts)
-    train_network_b(docVals, trainDicts, trained_network, LP)
-    write_training(output_file, trained_network)
+    classRatio = train_network_b(docVals, trainDicts, trained_network, LP, classRatio)
+    # write_training(output_file, trained_network)
+    generate_odds(oddsRatio, trained_network)
     ### Get dictionary of values to test on ###
     ### Can reuse variables because our trained_network holds all our data ###
     trainVal = list()
@@ -49,8 +54,7 @@ def main():
         docVals.append(int(x[0]))
         del x[0]
     create_dict(trainVal, trainDicts)
-    return
-    test_values(trainDicts, generated_content, trained_network)
+    test_values(trainDicts, generated_content, trained_network, oddsRatio, classRatio)
     determine_accuracy(generated_content, docVals)
     # print_odds_ratios(trainedList)
     return
@@ -70,7 +74,7 @@ def create_dict(trainVal, trainDicts):
             tempDict[temp[0]] = int(temp[1])
         trainDicts.append(tempDict)
 
-def train_network_b(docVals, trainDicts, trained_network, LP):
+def train_network_b(docVals, trainDicts, trained_network, LP, classRatio):
     total = [0, 0]
 
     ### Set default values = to LP smoothing value ###
@@ -90,9 +94,19 @@ def train_network_b(docVals, trainDicts, trained_network, LP):
         for y in trained_network[i].iterkeys():
             trained_network[i][y]/=(1.0*(total[i]+LP*2))
 
-    ### set the default value = to 1/number of choices per feature ###
-    trained_network[0] = defaultdict(lambda: .5, trained_network[0])
-    trained_network[1] = defaultdict(lambda: .5, trained_network[1])
+    ### set the default value = to ()1/number of choices per feature)/# of features ###
+    trained_network[0] = defaultdict(lambda: .5/(total[0]), trained_network[0])
+    trained_network[1] = defaultdict(lambda: .5/(total[1]), trained_network[1])
+
+    classRatio = 1.0*total[0]/total[1]
+    return classRatio
+
+def generate_odds(oddsRatio, trained_network):
+    for x in trained_network[0].keys():
+        oddsRatio[x] = trained_network[0][x]/trained_network[1][x]
+    ### It's ok to overwrite. Value will be the same ###
+    for x in trained_network[1].keys():
+        oddsRatio[x] = trained_network[0][x]/trained_network[1][x]
 
 def write_training(output_file, data):
     with open(output_file, 'w') as outfile:
@@ -104,29 +118,35 @@ def write_training(output_file, data):
                 outfile.write(str(x))
             outfile.write("\n")
 
-def test_values(trainDicts, generated_content, trained_network):
+def test_values(trainDicts, generated_content, trained_network, oddsRatio, classRatio):
     probabilities = [0,0] #0 is negative, 1 is positive
     # for x in trainDicts:
     #     print(x)
     # return
     for x in trainDicts:
-        for y in x.values():
-            print(trained_network[0][y])
-            print(trained_network[1][y])
-        return
-        print(x)
+        # for y in x.keys():
+        #     print(y)
+        #     print(trained_network[0][y])
+        #     print(trained_network[1][y])
+        # return
         for i in range(2):
             for y in trained_network[i].keys():
-                if y in x.values():
+                if y in x.keys():
                     probabilities[i]+=math.log(trained_network[i][y])
                 else:
                     probabilities[i]+=math.log(1-trained_network[i][y])
         ### Classify Document ###
+        for y in x.keys():
+            if y in oddsRatio:
+                probabilities[0]+=(math.log(oddsRatio[y]))
+                probabilities[1]-=(math.log(oddsRatio[y]))
+        ### Add probability of class y ###
+        probabilities[0]+=math.log(classRatio)
+        probabilities[1]+=math.log(1/classRatio)
         if probabilities[0] > probabilities[1]:
             generated_content.append(-1)
         else:
             generated_content.append(1)
-        print("probabilities =",probabilities)
         probabilities = [0,0]
 
 def determine_accuracy(generated_content, docVals):
