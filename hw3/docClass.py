@@ -13,10 +13,10 @@ def main():
         print("Not enough arguments.")
         return
     ### Files to train from and save training data ###
-    # trainingFile = "./movie_review/rt-train.txt"
-    # testFile = "./movie_review/rt-test.txt"
-    trainingFile = "./fisher_2topic/fisher_train_2topic.txt"
-    testFile = "./fisher_2topic/fisher_test_2topic.txt"
+    trainingFile = "./movie_review/rt-train.txt"
+    testFile = "./movie_review/rt-test.txt"
+    # trainingFile = "./fisher_2topic/fisher_train_2topic.txt"
+    # testFile = "./fisher_2topic/fisher_test_2topic.txt"
     ### File to write training data to if you want to save it ###
     output_file = "./trainingDocClass.txt"
     ### LaPlace smoothing value ###
@@ -39,7 +39,18 @@ def main():
         docVals.append(int(x[0]))
         del x[0]
     create_dict(trainVal, trainDicts)
-    classRatio = train_network_b(docVals, trainDicts, trained_network, LP, classRatio)
+    # classRatio = train_network_b(docVals, trainDicts, trained_network, LP, classRatio)
+    classRatio = train_network_m(docVals, trainDicts, trained_network, LP, classRatio)
+    # y = 0
+    # for i in range(2):
+    #     for x, z in trained_network[i].iteritems():
+    #         print("key = ",x)
+    #         print("value = ",z)
+    #         y+=1
+    #         if y == 20:
+    #             break
+
+    # return
     # write_training(output_file, trained_network)
     generate_odds(oddsRatio, trained_network)
     ### Get dictionary of values to test on ###
@@ -74,6 +85,35 @@ def create_dict(trainVal, trainDicts):
             tempDict[temp[0]] = int(temp[1])
         trainDicts.append(tempDict)
 
+def train_network_m(docVals, trainDicts, trained_network, LP, classRatio):
+    total = [0, 0]
+
+    ### Set default values = to LP smoothing value ###
+    trained_network.append(defaultdict(lambda: LP)) #index 0 is negative reviews
+    trained_network.append(defaultdict(lambda: LP)) #index 1 is positive reviews
+    for x in range(len(docVals)):
+        if docVals[x] < 0:
+            for key, value in trainDicts[x].iteritems():
+                total[0]+=value
+                trained_network[0][key]+=value
+        else:
+            for key, value in trainDicts[x].iteritems():
+                total[1]+=value
+                trained_network[0][key]+=value
+
+    for i in range(2):
+        for y in trained_network[i].iterkeys():
+            trained_network[i][y]/=(1.0*(total[0]+total[1]+LP*(total[i])))
+
+
+    print(total)
+    ### set the default value = to ()1/number of choices per feature)/# of features ###
+    trained_network[0] = defaultdict(lambda: .5/(total[0]), trained_network[0])
+    trained_network[1] = defaultdict(lambda: .5/(total[1]), trained_network[1])
+
+    classRatio = 1.0*total[0]/total[1]
+    return classRatio
+
 def train_network_b(docVals, trainDicts, trained_network, LP, classRatio):
     total = [0, 0]
 
@@ -94,6 +134,7 @@ def train_network_b(docVals, trainDicts, trained_network, LP, classRatio):
         for y in trained_network[i].iterkeys():
             trained_network[i][y]/=(1.0*(total[i]+LP*2))
 
+    print(total)
     ### set the default value = to ()1/number of choices per feature)/# of features ###
     trained_network[0] = defaultdict(lambda: .5/(total[0]), trained_network[0])
     trained_network[1] = defaultdict(lambda: .5/(total[1]), trained_network[1])
@@ -136,13 +177,14 @@ def test_values(trainDicts, generated_content, trained_network, oddsRatio, class
                 else:
                     probabilities[i]+=math.log(1-trained_network[i][y])
         ### Classify Document ###
-        for y in x.keys():
-            if y in oddsRatio:
-                probabilities[0]+=(math.log(oddsRatio[y]))
-                probabilities[1]-=(math.log(oddsRatio[y]))
+        # for y in x.keys():
+        #     if y in oddsRatio:
+        #         probabilities[0]+=(math.log(oddsRatio[y]))
+        #         probabilities[1]-=(math.log(oddsRatio[y]))
         ### Add probability of class y ###
         probabilities[0]+=math.log(classRatio)
         probabilities[1]+=math.log(1/classRatio)
+        # print(probabilities)
         if probabilities[0] > probabilities[1]:
             generated_content.append(-1)
         else:
