@@ -40,7 +40,7 @@ def main():
                    6: [[LP for i in range(M)] for j in range(M)],
                    7: [[LP for i in range(M)] for j in range(M)],
                    8: [[LP for i in range(M)] for j in range(M)],
-                   0: [[LP for i in range(M)] for j in range(M)]}
+                   9: [[LP for i in range(M)] for j in range(M)]}
     read_trainingVal(trainingValueFile, trainVal)
     train_network(trainingDigitFile, trainVal, trainedList, classCount, LP, M)
     # write_training(output_file, trainedList)
