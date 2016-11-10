@@ -10,17 +10,22 @@ start_time = time.time()
 
 def main():
     if len(sys.argv)!=3:
-        print("Not enough arguments.")
+        print("Wrong number of arguments. For the first argument, enter 'b' for bernouli or 'm' for multinomial. For the second argument, enter 'm' for movie reviews or 'c' for conversations.")
         return
     ### Files to train from and save training data ###
-    trainingFile = "./movie_review/rt-train.txt"
-    testFile = "./movie_review/rt-test.txt"
-    # trainingFile = "./fisher_2topic/fisher_train_2topic.txt"
-    # testFile = "./fisher_2topic/fisher_test_2topic.txt"
+    if sys.argv[2] == "m":
+        trainingFile = "./movie_review/rt-train.txt"
+        testFile = "./movie_review/rt-test.txt"
+    elif sys.argv[2] == "c":
+        trainingFile = "./fisher_2topic/fisher_train_2topic.txt"
+        testFile = "./fisher_2topic/fisher_test_2topic.txt"
+    else:
+        print("For the second argument, enter 'm' for movie reviews or 'c' for conversations.")
+        return
     ### File to write training data to if you want to save it ###
     output_file = "./trainingDocClass.txt"
     ### LaPlace smoothing value ###
-    LP = .1
+    LP = 0.1
     ### Word list (needs to be converted into a dictionary) ###
     trainVal = list()
     ### 1 or -1 depending on review ###
@@ -39,18 +44,13 @@ def main():
         docVals.append(int(x[0]))
         del x[0]
     create_dict(trainVal, trainDicts)
-    # classRatio = train_network_b(docVals, trainDicts, trained_network, LP, classRatio)
-    classRatio = train_network_m(docVals, trainDicts, trained_network, LP, classRatio)
-    # y = 0
-    # for i in range(2):
-    #     for x, z in trained_network[i].iteritems():
-    #         print("key = ",x)
-    #         print("value = ",z)
-    #         y+=1
-    #         if y == 20:
-    #             break
-
-    # return
+    if sys.argv[1] == "b":
+        classRatio = train_network_b(docVals, trainDicts, trained_network, LP, classRatio)
+    elif sys.argv[1] == "m":
+        classRatio = train_network_m(docVals, trainDicts, trained_network, LP, classRatio)
+    else:
+        print("For the first argument, enter 'b' for bernouli or 'm' for multinomial.")
+        return
     # write_training(output_file, trained_network)
     generate_odds(oddsRatio, trained_network)
     ### Get dictionary of values to test on ###
@@ -99,14 +99,11 @@ def train_network_m(docVals, trainDicts, trained_network, LP, classRatio):
         else:
             for key, value in trainDicts[x].iteritems():
                 total[1]+=value
-                trained_network[0][key]+=value
+                trained_network[1][key]+=value
 
     for i in range(2):
         for y in trained_network[i].iterkeys():
-            trained_network[i][y]/=(1.0*(total[0]+total[1]+LP*(total[i])))
-
-
-    print(total)
+            trained_network[i][y]/=(1.0*(total[1]+total[0]+LP*(total[0]+total[1])))
     ### set the default value = to ()1/number of choices per feature)/# of features ###
     trained_network[0] = defaultdict(lambda: .5/(total[0]), trained_network[0])
     trained_network[1] = defaultdict(lambda: .5/(total[1]), trained_network[1])
