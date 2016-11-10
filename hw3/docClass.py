@@ -129,9 +129,8 @@ def train_network_b(docVals, trainDicts, trained_network, LP, classRatio):
 
     for i in range(2):
         for y in trained_network[i].iterkeys():
-            trained_network[i][y]/=(1.0*(total[i]+LP*2))
+            trained_network[i][y]/=(1.0*(total[0]+total[1]+LP*2))
 
-    print(total)
     ### set the default value = to ()1/number of choices per feature)/# of features ###
     trained_network[0] = defaultdict(lambda: .5/(total[0]), trained_network[0])
     trained_network[1] = defaultdict(lambda: .5/(total[1]), trained_network[1])
@@ -190,10 +189,13 @@ def test_values(trainDicts, generated_content, trained_network, oddsRatio, class
 
 def determine_accuracy(generated_content, docVals):
     correct = 0
+
     total = len(generated_content)
     for i in range(total):
-         if generated_content[i] == docVals[i]:
-             correct+=1
+        if generated_content[i] == docVals[i]:
+            correct+=1
+        # else:
+
     print(correct/(1.0*total))
 
 if __name__ == "__main__":
