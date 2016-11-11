@@ -192,7 +192,7 @@ def determine_accuracy(testVal, numbers_classified, confusionMatrix):
     for i in range(10):
         for j in range(10):
             if j == 0:
-                print("[", end="")
+                print("["+str(confusionMatrix[i][j]),end="%, ")
             elif j == 9:
                 print(confusionMatrix[i][j],end="%]")
             else:

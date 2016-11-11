@@ -1,6 +1,7 @@
 from __future__ import print_function
 from copy import deepcopy
 from collections import defaultdict
+import operator
 import sys
 import time
 import math
@@ -67,7 +68,7 @@ def main():
     create_dict(trainVal, trainDicts)
     test_values(trainDicts, generated_content, trained_network, oddsRatio, classRatio)
     determine_accuracy(generated_content, docVals)
-    # print_odds_ratios(trainedList)
+    print_odds_ratios(trained_network)
     return
 
 def read_data(input_file, trainVal):
@@ -173,10 +174,10 @@ def test_values(trainDicts, generated_content, trained_network, oddsRatio, class
                 else:
                     probabilities[i]+=math.log(1-trained_network[i][y])
         ### Classify Document ###
-        # for y in x.keys():
-        #     if y in oddsRatio:
-        #         probabilities[0]+=(math.log(oddsRatio[y]))
-        #         probabilities[1]-=(math.log(oddsRatio[y]))
+        for y in x.keys():
+            if y in oddsRatio:
+                probabilities[0]+=(5*math.log(oddsRatio[y]))
+                probabilities[1]-=(5*math.log(oddsRatio[y]))
         ### Add probability of class y ###
         probabilities[0]+=math.log(classRatio)
         probabilities[1]+=math.log(1/classRatio)
@@ -189,14 +190,47 @@ def test_values(trainDicts, generated_content, trained_network, oddsRatio, class
 
 def determine_accuracy(generated_content, docVals):
     correct = 0
-
+    confusionMatrix = [[0 for i in range(2)] for j in range(2)]
     total = len(generated_content)
     for i in range(total):
         if generated_content[i] == docVals[i]:
             correct+=1
-        # else:
+        else:
+            if docVals[i] == -1:
+                confusionMatrix[0][1]+=1
+            else:
+                confusionMatrix[1][0]+=1
+    for i in range(2):
+        for j in range(2):
+            confusionMatrix[i][j]/=(1.0*total)
+    for i in range(2):
+        for j in range(2):
+            confusionMatrix[i][j]*=1000
+            confusionMatrix[i][j]=int(confusionMatrix[i][j])
+            confusionMatrix[i][j]/=(10.0)
+    correct/=(1.0*total)
+    correct=int(correct*1000)
+    correct/=(10.0)
+    if sys.argv[2] == "c":
+        print(str(correct)+"% of the conversations were correctly classified.\n")
+    else:
+        print(str(correct)+"% of the movie reviews were correctly classified.\n")
+    print("The confusion matrix for row true class and column classified as:")
+    for i in range(2):
+        for j in range(2):
+            if j == 0:
+                print("["+str(confusionMatrix[i][j]), end="%, ")
+            else:
+                print(confusionMatrix[i][j],end="%]\n")
 
-    print(correct/(1.0*total))
+def print_odds_ratios(trained_network):
+    most_likely_keys_0 = sorted(trained_network[0].items(), key=operator.itemgetter(1), reverse=True)
+    most_likely_keys_1 = sorted(trained_network[1].items(), key=operator.itemgetter(1), reverse=True)
+    print(most_likely_keys_0[0])
+    print(most_likely_keys_0[-1])
+
+
+    return
 
 if __name__ == "__main__":
     # pdb.set_trace()
