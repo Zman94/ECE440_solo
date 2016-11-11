@@ -226,9 +226,50 @@ def determine_accuracy(generated_content, docVals):
 def print_odds_ratios(trained_network):
     most_likely_keys_0 = sorted(trained_network[0].items(), key=operator.itemgetter(1), reverse=True)
     most_likely_keys_1 = sorted(trained_network[1].items(), key=operator.itemgetter(1), reverse=True)
-    print(most_likely_keys_0[0])
-    print(most_likely_keys_0[-1])
 
+    top_ten_0 = most_likely_keys_0[:10]
+    top_ten_1 = most_likely_keys_1[:10]
+
+    for x in range(len(top_ten_0)):
+        top_ten_0[x]=(top_ten_0[x][0],int(top_ten_0[x][1]*10000))
+        top_ten_0[x]=(top_ten_0[x][0],top_ten_0[x][1]/100.0)
+    for x in range(len(top_ten_1)):
+        top_ten_1[x]=(top_ten_1[x][0],int(top_ten_1[x][1]*10000))
+        top_ten_1[x]=(top_ten_1[x][0],top_ten_1[x][1]/100.0)
+
+    print()
+    print("The top ten words in the category classified as -1 are as follows with percent of documents they appear in:")
+    for x in top_ten_0:
+        print(x[0]+": "+str(x[1])+"%")
+    print()
+    print("The top ten words in the category classified as +1 are as follows with percent of documents they appear in:")
+    for x in top_ten_1:
+        print(x[0]+": "+str(x[1])+"%")
+
+    print()
+    print("The words with the highest odds ratio are as follows:")
+    oddsRatio = [(1, "ipsum") for x in range(10)]
+    for key,value in trained_network[0].iteritems():
+        odds_ratio_cur = value/trained_network[1][key]
+        for x in range(10):
+            if odds_ratio_cur > 1:
+                if odds_ratio_cur > oddsRatio[x][0] and odds_ratio_cur > 1/oddsRatio[x][0]:
+                    oddsRatio[x] = (odds_ratio_cur,key)
+                    break
+            elif odds_ratio_cur < 1:
+                if odds_ratio_cur < oddsRatio[x][0] and odds_ratio_cur < 1/oddsRatio[x][0]:
+                    oddsRatio[x] = (odds_ratio_cur,key)
+                    break
+
+    print("These words appeared in category -1 more often.")
+    for x in oddsRatio:
+        if x[0] > 1:
+            print(x)
+
+    print("These words appeared in category +1 more often.")
+    for x in oddsRatio:
+        if x[0] < 1:
+            print(x)
 
     return
 
