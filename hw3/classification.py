@@ -69,9 +69,9 @@ def train_network(input_file, trainVal, trainedList, classCount, LP, M):
         curNumber = int(trainVal[trainValNumber])
         classCount[curNumber]+=1
         for line in f:
-            if firstTime == True:
-                firstTime = False
-                continue
+            # if firstTime == True:
+            #     firstTime = False
+            #     continue
             if i >= M:
                 trainValNumber+=1
                 if trainValNumber==len(trainVal):
@@ -117,6 +117,8 @@ def test_values(input_file, testVal, trainedList, numbers_classified, classCount
     with open(input_file) as f:
         for line in f:
             if i >= M:
+                probability_list[8]+=7
+                probability_list[5]+=4
                 numbers_classified.append(classify_number(probability_list))
                 # debuggingCounter+=1
                 # if debuggingCounter == 15:
@@ -139,6 +141,18 @@ def test_values(input_file, testVal, trainedList, numbers_classified, classCount
                         probability_list[curNumber]+=math.log(1-trainedList[curNumber][i][j])
                     j+=1
             i+=1
+        probability_list[8]+=7
+        probability_list[5]+=4
+        numbers_classified.append(classify_number(probability_list))
+        # debuggingCounter+=1
+        # if debuggingCounter == 15:
+        #     print(numbers_classified)
+        #     return
+        i = 0
+        for x in range(10):
+            # probability_list[x]=1
+            probability_list[x]=classCount[x]
+        # probability_list[8]-=15
 
 def classify_number(probability_list):
     # print(probability_list)
@@ -151,7 +165,7 @@ def classify_number(probability_list):
     return maxNumber
 
 def determine_accuracy(testVal, numbers_classified, confusionMatrix):
-    total_numbers = len(numbers_classified)
+    total_numbers = len(testVal)
     total_per_class = [0.0 for x in range(10)]
     correct_number = 0
     correct_per_class = [0 for x in range(10)]
@@ -182,7 +196,7 @@ def determine_accuracy(testVal, numbers_classified, confusionMatrix):
     print("Each number's accuracy from 0-9 is:")
     for x in range(10):
         if x == 0:
-            print("[", end="")
+            print("["+str(correct_per_class[x]), end="%, ")
         elif x == 9:
             print(correct_per_class[x],end="%]\n")
         else:
