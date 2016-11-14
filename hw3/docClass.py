@@ -52,6 +52,13 @@ def main():
     else:
         print("For the first argument, enter 'b' for bernouli or 'm' for multinomial.")
         return
+    ### Create this list to find the words that occur in the most docs ###
+    trained_network_per_doc = list()
+    if sys.argv[1] == "b":
+        find_most_likely_words_per_doc(docVals, trainDicts, trained_network_per_doc)
+    elif sys.argv[1] == "m":
+        find_most_likely_words_per_vocab(docVals, trainDicts, trained_network_per_doc)
+
     # write_training(output_file, trained_network)
     generate_odds(oddsRatio, trained_network)
     ### Get dictionary of values to test on ###
@@ -68,7 +75,10 @@ def main():
     create_dict(trainVal, trainDicts)
     test_values(trainDicts, generated_content, trained_network, oddsRatio, classRatio)
     determine_accuracy(generated_content, docVals)
-    print_odds_ratios(trained_network)
+    # if sys.argv[1] == "m":
+    #     print_odds_ratios(trained_network_per_doc)
+    #     return
+    print_odds_ratios(trained_network_per_doc)
     return
 
 def read_data(input_file, trainVal):
@@ -130,7 +140,7 @@ def train_network_b(docVals, trainDicts, trained_network, LP, classRatio):
 
     for i in range(2):
         for y in trained_network[i].iterkeys():
-            trained_network[i][y]/=(1.0*(total[0]+total[1]+LP*2))
+            trained_network[i][y]/=(1.0*(total[i]+LP*2))
 
     ### set the default value = to ()1/number of choices per feature)/# of features ###
     trained_network[0] = defaultdict(lambda: .5/(total[0]), trained_network[0])
@@ -138,6 +148,29 @@ def train_network_b(docVals, trainDicts, trained_network, LP, classRatio):
 
     classRatio = 1.0*total[0]/total[1]
     return classRatio
+
+def find_most_likely_words_per_doc(docVals, trainDicts, trained_network):
+    total = [0, 0]
+
+    ### Set default values = to LP smoothing value ###
+    trained_network.append(defaultdict(lambda: 0)) #index 0 is negative reviews
+    trained_network.append(defaultdict(lambda: 0)) #index 1 is positive reviews
+    for x in range(len(docVals)):
+        if docVals[x] < 0:
+            total[0]+=1
+            for y in trainDicts[x].keys():
+                trained_network[0][y]+=1
+        else:
+            total[1]+=1
+            for y in trainDicts[x]:
+                trained_network[1][y]+=1
+
+    for i in range(2):
+        for y in trained_network[i].iterkeys():
+            trained_network[i][y]/=(1.0*(total[i]))
+
+    trained_network[0] = defaultdict(lambda: .5/(total[0]), trained_network[0])
+    trained_network[1] = defaultdict(lambda: .5/(total[1]), trained_network[1])
 
 def generate_odds(oddsRatio, trained_network):
     for x in trained_network[0].keys():
@@ -238,11 +271,11 @@ def print_odds_ratios(trained_network):
         top_ten_1[x]=(top_ten_1[x][0],top_ten_1[x][1]/100.0)
 
     print()
-    print("The top ten words in the category classified as -1 are as follows with percent of documents they appear in:")
+    print("The top ten words in the category classified as -1 are as follows with frequency they appear:")
     for x in top_ten_0:
         print(x[0]+": "+str(x[1])+"%")
     print()
-    print("The top ten words in the category classified as +1 are as follows with percent of documents they appear in:")
+    print("The top ten words in the category classified as +1 are as follows with frequency they appear:")
     for x in top_ten_1:
         print(x[0]+": "+str(x[1])+"%")
 
@@ -261,14 +294,16 @@ def print_odds_ratios(trained_network):
                     oddsRatio[x] = (odds_ratio_cur,key)
                     break
 
+    for x in range(10):
+        oddsRatio[x] = (math.log(oddsRatio[x][0]), oddsRatio[x][1])
     print("These words appeared in category -1 more often.")
     for x in oddsRatio:
-        if x[0] > 1:
+        if x[0] > 0:
             print(x)
 
     print("These words appeared in category +1 more often.")
     for x in oddsRatio:
-        if x[0] < 1:
+        if x[0] < 0:
             print(x)
 
     return
