@@ -107,12 +107,16 @@ def train_network(input_file, trainVal, trainedList, classCount, LP, M):
 
 def test_values(input_file, testVal, trainedList, numbers_classified, classCount, M):
     ### Start the probabilities at those of probability for a class ###
+    maxPosteriors = [[-500 for x in range(2)] for y in range(10)]
+    minPosteriors = [[0 for x in range(2)] for y in range(10)]
+    curPic = [[" " for x in range(M)] for y in range(M)]
     probability_list = list()
     for x in range(10):
         # probability_list.append(1)
         probability_list.append(classCount[x])
     # probability_list[8]-=15
     i = 0
+    curNumberlist = 0
     # debuggingCounter = 0
     with open(input_file) as f:
         for line in f:
@@ -120,15 +124,23 @@ def test_values(input_file, testVal, trainedList, numbers_classified, classCount
                 probability_list[8]+=7
                 probability_list[5]+=4
                 numbers_classified.append(classify_number(probability_list))
+                if probability_list[int(testVal[curNumberlist])] > maxPosteriors[int(testVal[curNumberlist])][0]:
+                    maxPosteriors[int(testVal[curNumberlist])][1] = curPic
+                    maxPosteriors[int(testVal[curNumberlist])][0] = probability_list[int(testVal[curNumberlist])]
+                if probability_list[int(testVal[curNumberlist])] < minPosteriors[int(testVal[curNumberlist])][0]:
+                    minPosteriors[int(testVal[curNumberlist])][1] = curPic
+                    minPosteriors[int(testVal[curNumberlist])][0] = probability_list[int(testVal[curNumberlist])]
                 # debuggingCounter+=1
                 # if debuggingCounter == 15:
                 #     print(numbers_classified)
                 #     return
                 i = 0
+                curPic = [[" " for x in range(M)] for y in range(M)]
                 for x in range(10):
                     # probability_list[x]=1
                     probability_list[x]=classCount[x]
                 # probability_list[8]-=15
+                curNumberlist+=1
 
             for curNumber in range(10):
                 j = 0
@@ -137,13 +149,21 @@ def test_values(input_file, testVal, trainedList, numbers_classified, classCount
                         continue
                     elif letter == '+' or letter == '#':
                         probability_list[curNumber]+=math.log(trainedList[curNumber][i][j])
+                        curPic[i][j] = letter
                     elif letter == ' ':
                         probability_list[curNumber]+=math.log(1-trainedList[curNumber][i][j])
+                        curPic[i][j] = letter
                     j+=1
             i+=1
         probability_list[8]+=7
         probability_list[5]+=4
         numbers_classified.append(classify_number(probability_list))
+        if probability_list[int(testVal[curNumberlist])] > maxPosteriors[int(testVal[curNumberlist])][0]:
+            maxPosteriors[int(testVal[curNumberlist])][1] = curPic
+            maxPosteriors[int(testVal[curNumberlist])][0] = probability_list[int(testVal[curNumberlist])]
+        if probability_list[int(testVal[curNumberlist])] < minPosteriors[int(testVal[curNumberlist])][0]:
+            minPosteriors[int(testVal[curNumberlist])][1] = curPic
+            minPosteriors[int(testVal[curNumberlist])][0] = probability_list[int(testVal[curNumberlist])]
         # debuggingCounter+=1
         # if debuggingCounter == 15:
         #     print(numbers_classified)
@@ -153,6 +173,32 @@ def test_values(input_file, testVal, trainedList, numbers_classified, classCount
             # probability_list[x]=1
             probability_list[x]=classCount[x]
         # probability_list[8]-=15
+        # for i in range(28):
+        #     for j in range(28):
+        #         determineColor = math.log(trainedList[list1[x]][i][j])
+        #         # print(determineColor)
+        #         # continue
+        #         if determineColor < -6:
+        #             print("#", end="")
+        #         elif determineColor < -3:
+        #             print("%", end="")
+        #         elif determineColor < -1:
+        #             print("X", end="")
+        #         else:
+        #             print("/", end="")
+        #     print(" ", end="")
+        #     print()
+        # print ()
+        for x in range(10):
+            for y in range(M):
+                for z in range(M):
+                    print(maxPosteriors[x][1][y][z],end="")
+                print(" ",end="")
+                for z in range(M):
+                    print(minPosteriors[x][1][y][z],end="")
+                print()
+
+        print(minPosteriors[1][0])
 
 def classify_number(probability_list):
     # print(probability_list)
