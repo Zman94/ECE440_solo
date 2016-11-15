@@ -240,12 +240,10 @@ def determine_accuracy_face(testVal, numbers_classified):
     for x in range(2):
         if x == 0:
             print("["+str(correct_per_class[x]), end="%, ")
-        elif x == 9:
+        elif x == 1:
             print(correct_per_class[x],end="%]\n")
-        else:
-            print(correct_per_class[x],end="%, ")
     print()
-    print("Out of " + str(total_numbers) + " total faces, " + str(correct_number) + " numbers were correctly classified with an accuracy of ", str(correct_number * 1.0 / total_numbers))
+    print("Out of " + str(total_numbers) + " total faces, " + str(correct_number) + " faces were correctly classified with an accuracy of ", str(correct_number * 1.0 / total_numbers))
 
 def test_values(input_file, testVal, trainedList, numbers_classified, classCount, M):
     ### Start the probabilities at those of probability for a class ###
