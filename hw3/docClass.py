@@ -172,6 +172,29 @@ def find_most_likely_words_per_doc(docVals, trainDicts, trained_network):
     trained_network[0] = defaultdict(lambda: .5/(total[0]), trained_network[0])
     trained_network[1] = defaultdict(lambda: .5/(total[1]), trained_network[1])
 
+def find_most_likely_words_per_vocab(docVals, trainDicts, trained_network):
+    total = [0, 0]
+
+    ### Set default values = to LP smoothing value ###
+    trained_network.append(defaultdict(lambda: 0)) #index 0 is negative reviews
+    trained_network.append(defaultdict(lambda: 0)) #index 1 is positive reviews
+    for x in range(len(docVals)):
+        if docVals[x] < 0:
+            for key, value in trainDicts[x].iteritems():
+                total[0]+=value
+                trained_network[0][key]+=value
+        else:
+            for key, value in trainDicts[x].iteritems():
+                total[1]+=value
+                trained_network[1][key]+=value
+
+    for i in range(2):
+        for y in trained_network[i].iterkeys():
+            trained_network[i][y]/=(1.0*(total[i]))
+    ### set the default value = to ()1/number of choices per feature)/# of features ###
+    trained_network[0] = defaultdict(lambda: .5/(total[0]), trained_network[0])
+    trained_network[1] = defaultdict(lambda: .5/(total[1]), trained_network[1])
+
 def generate_odds(oddsRatio, trained_network):
     for x in trained_network[0].keys():
         oddsRatio[x] = trained_network[0][x]/trained_network[1][x]
@@ -223,6 +246,7 @@ def test_values(trainDicts, generated_content, trained_network, oddsRatio, class
 
 def determine_accuracy(generated_content, docVals):
     correct = 0
+    posResponse = 0.0
     confusionMatrix = [[0 for i in range(2)] for j in range(2)]
     total = len(generated_content)
     for i in range(total):
@@ -233,6 +257,8 @@ def determine_accuracy(generated_content, docVals):
                 confusionMatrix[0][1]+=1
             else:
                 confusionMatrix[1][0]+=1
+        if generated_content[i]==1:
+            posResponse+=1
     for i in range(2):
         for j in range(2):
             confusionMatrix[i][j]/=(1.0*total)
@@ -248,6 +274,8 @@ def determine_accuracy(generated_content, docVals):
         print(str(correct)+"% of the conversations were correctly classified.\n")
     else:
         print(str(correct)+"% of the movie reviews were correctly classified.\n")
+    print(str(100*posResponse/total)+"% of the documents were in category +1")
+    print(str((1-(posResponse/total))*100)+"% of the documents were in category -1")
     print("The confusion matrix for row true class and column classified as:")
     for i in range(2):
         for j in range(2):
