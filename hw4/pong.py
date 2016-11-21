@@ -30,7 +30,7 @@ def drawPaddle(paddle):
     if paddle.bottom > height:
         paddle.bottom = height
     #Stops paddle moving too high
-    elif paddle.top:
+    elif paddle.top < 0:
         paddle.top = 0
     #Draws paddle
     pygame.draw.rect(DISPLAYSURF, black, paddle)
@@ -67,7 +67,7 @@ def checkHitBall(ball, paddle1, paddle2, velocity_x):
 #Checks to see if a point has been scored returns new score
 def checkPointScored(paddle2, ball, score, velocity_x):
     #reset points if left wall is hit
-    if ball.left >= width:
+    if ball.right >= width:
         return 0
     #1 point for hitting the ball
     elif velocity_x > 0 and paddle2.left <= ball.right and paddle2.top < ball.bottom and paddle2.bottom > ball.top:
@@ -119,14 +119,15 @@ def main():
     #any future changes made within rectangles
     game_state_tuple[0] = width/2 - paddle_width/2
     game_state_tuple[1] = height/2 - paddle_width/2
-    playerOnePosition = height/2
     score = 0
 
+    print(game_state_tuple[4]-paddle_height2)
     #Creates Rectangles for ball and paddles.
-    paddle1 = pygame.Rect(PADDLEOFFSET, playerOnePosition, paddle_width, paddle_height1)
-    paddle2 = pygame.Rect(width - PADDLEOFFSET - paddle_width, game_state_tuple[4], paddle_width, paddle_height2)
+    paddle1 = pygame.Rect(PADDLEOFFSET, 0, paddle_width, paddle_height1)
+    paddle2 = pygame.Rect(width - PADDLEOFFSET - paddle_width, game_state_tuple[4]-paddle_height2/2, paddle_width, paddle_height2)
     ball = pygame.Rect(game_state_tuple[0], game_state_tuple[1], paddle_width, paddle_width)
 
+    print(paddle_height2)
     #Draws the starting position of the Arena
     drawArena()
     drawPaddle(paddle1)
