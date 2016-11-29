@@ -28,11 +28,10 @@ columns = 12
 victory_reward = 1
 failure_reward = -1
 gamma = 5
-alpha = 10.0
+alpha = 1000.0
 learning_times = [[[[[0 for v in range(3)] for w in range(2)] for x in range(columns)] for y in range(columns)] for z in range(rows)]
-Nc = 3
+Nc = 5
 # to stop the algorithm from processing the a negative on the first state after a failure
-firstState = True
 
 #File to store trained list
 out_file = "./q_training.txt"
@@ -143,10 +142,10 @@ def q_paddle(q, cur_state, paddle2):
         curminus1 = 0
     if cur_state[2]+1 >= rows:
         curplus1 = rows-1
-    print("Q is")
-    print(q[cur_state[0]][cur_state[1]][curminus1][cur_state[3]][cur_state[4]])
-    print(q[cur_state[0]][cur_state[1]][cur_state[2]][cur_state[3]][cur_state[4]])
-    print(q[cur_state[0]][cur_state[1]][curplus1][cur_state[3]][cur_state[4]])
+    # print("Q is")
+    # print(q[cur_state[0]][cur_state[1]][curminus1][cur_state[3]][cur_state[4]])
+    # print(q[cur_state[0]][cur_state[1]][cur_state[2]][cur_state[3]][cur_state[4]])
+    # print(q[cur_state[0]][cur_state[1]][curplus1][cur_state[3]][cur_state[4]])
 
     if learning_times[cur_state[0]][cur_state[1]][cur_state[2]][cur_state[3]][cur_state[4]] < Nc:
         max_state = 0
@@ -161,12 +160,12 @@ def q_paddle(q, cur_state, paddle2):
             else:
                 max_state = 0
         else:
-            if q[cur_state[0]][cur_state[1]][curplus1][cur_state[3]][cur_state[4]] > q[cur_state[0]][cur_state[1]][cur_state[2]][cur_state[3]][cur_state[4]]:
+            if q[cur_state[0]][cur_state[1]][curplus1][cur_state[3]][cur_state[4]] >= q[cur_state[0]][cur_state[1]][cur_state[2]][cur_state[3]][cur_state[4]]:
                 max_state = 1
             else:
                 max_state = 0
 
-    print("This is max state", max_state)
+    # print("This is max state", max_state)
     paddle2.y += (max_state*height*.04)
     return paddle2
 
@@ -249,12 +248,12 @@ def eval_q(q, r, prev_state, cur_state):
 
 
     ### This mess of a line determines the Q value for the last state as based on the lecture algorithm ###
-    if not firstState and prev_state != cur_state:
-        print(prev_state)
-        print(cur_state)
-        print((alpha/(learning_times[prev_state[0]][prev_state[1]][prev_state[2]][prev_state[3]][prev_state[4]]+alpha)))
-        print(gamma*max_next_state)
-        print()
+    if prev_state != cur_state:
+        # print(prev_state)
+        # print(cur_state)
+        # print((alpha/(learning_times[prev_state[0]][prev_state[1]][prev_state[2]][prev_state[3]][prev_state[4]]+alpha)))
+        # print(gamma*max_next_state)
+        # print()
         q[prev_state[0]][prev_state[1]][prev_state[2]][prev_state[3]][prev_state[4]] = q[prev_state[0]][prev_state[1]][prev_state[2]][prev_state[3]][prev_state[4]]+(alpha/(learning_times[prev_state[0]][prev_state[1]][prev_state[2]][prev_state[3]][prev_state[4]]+alpha))*(r[prev_state[0]][prev_state[1]][prev_state[2]][prev_state[3]][prev_state[4]]+gamma*max_next_state-q[prev_state[0]][prev_state[1]][prev_state[2]][prev_state[3]][prev_state[4]])
 
 #Save the list in a file
@@ -294,7 +293,6 @@ def load_q_learning():
 def main():
     global graphics
     global Nc, gamma, alpha
-    global firstState
     if len(sys.argv)!=3:
         print("Give argument 'g' for a gui and any other letter for no gui.")
         print("Give second argument 't' for test and 'l' for learn.")
@@ -315,7 +313,7 @@ def main():
     elif sys.argv[2] == 'l':
         ### q matrix [column][row_ball][row_paddle][x_speed][y_speed]###
         q = [[[[[0 for v in range(3)] for w in range(2)] for x in range(columns)] for y in range(columns)] for z in range(rows)]
-        maxGames = 500000
+        maxGames = 5000000
     else:
         print("Please give argument 't' for test or 'l' for learn.")
         return
@@ -375,7 +373,6 @@ def main():
         pygame.mouse.set_visible(False) # make cursor invisible
 
     determineState(paddle2, ball, game_state_tuple[2], game_state_tuple[3])
-    firstState = False
     gamesNum = 1
     maxHits = 0
     avgHits = 0
@@ -390,7 +387,6 @@ def main():
         if score < 0:
             score = 0
             q[cur_state[0]][cur_state[1]][cur_state[2]][cur_state[3]][cur_state[4]] = r[cur_state[0]][cur_state[1]][cur_state[2]][cur_state[3]][cur_state[4]]
-            firstState = True
             # play_again = raw_input("Press 'p' to play again")
             # if play_again != 'p':
             #     break
@@ -418,8 +414,8 @@ def main():
         score = checkPointScored(paddle2, ball, score, game_state_tuple[2])
 
         if score < 0:
-            # print(lastScore)
             if lastScore > maxHits:
+                print(lastScore)
                 maxHits = lastScore
             avgHits+=lastScore
 
@@ -449,7 +445,6 @@ def main():
             #                     IF Z >0:
             #                         print(z)
             eval_q(q, r, prev_state, cur_state)
-            firstState = False
 
 if __name__=='__main__':
     # pdb.set_trace()
