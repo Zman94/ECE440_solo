@@ -252,7 +252,6 @@ def eval_q(q, r, prev_state, cur_state):
     if not firstState and prev_state != cur_state:
         print(prev_state)
         print(cur_state)
-        print(max_next_state)
         print((alpha/(learning_times[prev_state[0]][prev_state[1]][prev_state[2]][prev_state[3]][prev_state[4]]+alpha)))
         print(gamma*max_next_state)
         print()
