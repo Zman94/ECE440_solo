@@ -27,18 +27,22 @@ rows = 12
 columns = 12
 victory_reward = 1
 failure_reward = -1
-gamma = .8
-alpha = 1.0
+gamma = 5
+alpha = 10.0
 learning_times = [[[[[0 for v in range(3)] for w in range(2)] for x in range(columns)] for y in range(columns)] for z in range(rows)]
-Nc = 1
+Nc = 3
+# to stop the algorithm from processing the a negative on the first state after a failure
+firstState = True
 
 #File to store trained list
 out_file = "./q_training.txt"
 
-#Draws the arena the game will be played in. 
+#Enable gui
+graphics = True
+
+#Draws the arena the game will be played in.
 def drawArena():
     DISPLAYSURF.fill((255,255,255))
-
 #Draws the paddle
 def drawPaddle(paddle):
     #Stops paddle moving too low
@@ -108,7 +112,7 @@ def checkHitBall(ball, paddle1, paddle2, velocity_x, velocity_y):
 def checkPointScored(paddle2, ball, score, velocity_x):
     #reset points if left wall is hit
     if ball.right >= width:
-        return 0
+        return -1
     #1 point for hitting the ball
     elif velocity_x > 0 and paddle2.left <= ball.right and paddle2.top < ball.bottom and paddle2.bottom > ball.top:
         score += 1
@@ -131,7 +135,7 @@ def hard_coded_paddle(ball, paddle1):
 
 #Q trained computer player
 def q_paddle(q, cur_state, paddle2):
-    print(cur_state)
+    # print(cur_state)
     curminus1 = cur_state[2]-1
     curplus1 = cur_state[2]+1
 
@@ -139,16 +143,17 @@ def q_paddle(q, cur_state, paddle2):
         curminus1 = 0
     if cur_state[2]+1 >= rows:
         curplus1 = rows-1
-    print(learning_times[cur_state[0]][cur_state[1]][curminus1][cur_state[3]][cur_state[4]])
-    print(learning_times[cur_state[0]][cur_state[1]][cur_state[2]][cur_state[3]][cur_state[4]])
-    print(learning_times[cur_state[0]][cur_state[1]][curplus1][cur_state[3]][cur_state[4]])
+    print("Q is")
+    print(q[cur_state[0]][cur_state[1]][curminus1][cur_state[3]][cur_state[4]])
+    print(q[cur_state[0]][cur_state[1]][cur_state[2]][cur_state[3]][cur_state[4]])
+    print(q[cur_state[0]][cur_state[1]][curplus1][cur_state[3]][cur_state[4]])
 
-    if learning_times[cur_state[0]][cur_state[1]][curminus1][cur_state[3]][cur_state[4]] < Nc:
-        max_state = -1
-    elif learning_times[cur_state[0]][cur_state[1]][cur_state[2]][cur_state[3]][cur_state[4]] < Nc:
+    if learning_times[cur_state[0]][cur_state[1]][cur_state[2]][cur_state[3]][cur_state[4]] < Nc:
         max_state = 0
     elif learning_times[cur_state[0]][cur_state[1]][curplus1][cur_state[3]][cur_state[4]] < Nc:
         max_state = 1
+    elif learning_times[cur_state[0]][cur_state[1]][curminus1][cur_state[3]][cur_state[4]] < Nc:
+        max_state = -1
     else: #only enter the utility function if all explorations are satisfied
         if q[cur_state[0]][cur_state[1]][curminus1][cur_state[3]][cur_state[4]] > q[cur_state[0]][cur_state[1]][curplus1][cur_state[3]][cur_state[4]]:
             if q[cur_state[0]][cur_state[1]][curminus1][cur_state[3]][cur_state[4]] > q[cur_state[0]][cur_state[1]][cur_state[2]][cur_state[3]][cur_state[4]]:
@@ -161,16 +166,17 @@ def q_paddle(q, cur_state, paddle2):
             else:
                 max_state = 0
 
-    paddle2.y += (max_state*height/12.0)
-
+    print("This is max state", max_state)
+    paddle2.y += (max_state*height*.04)
     return paddle2
 
 #Displays the current score on the screen
 def displayScore(score):
-    resultSurf = BASICFONT.render('Score = %s' %(score), True, black)
-    resultRect = resultSurf.get_rect()
-    resultRect.topleft = (width - 150, 25)
-    DISPLAYSURF.blit(resultSurf, resultRect)
+    if graphics:
+        resultSurf = BASICFONT.render('Score = %s' %(score), True, black)
+        resultRect = resultSurf.get_rect()
+        resultRect.topleft = (width - 150, 25)
+        DISPLAYSURF.blit(resultSurf, resultRect)
 
 #Resets game to initial state
 def resetGame(game_state_tuple):
@@ -195,17 +201,17 @@ def determineState(paddle, ball, velocity_x, velocity_y):
         l+=1
 
     if velocity_x < 0:
-        k = -1
+        k = 0
     else:
         k = 1
 
     if velocity_y < .015:
         if velocity_y > -.015:
-            j = 0
+            j = 1
         else:
-            j = -1
+            j = 0
     else:
-        j = 1
+        j = 2
 
     if m >= rows:
         m = rows-1
@@ -229,40 +235,94 @@ def eval_q(q, r, prev_state, cur_state):
     if prev_state[2] >= rows-1:
         rowNumplus1 = rows-1
     else:
-        rowNumplus1 = prev_state[2]+1
+        rowNumplus1 = cur_state[2]+1
     if prev_state[2] <= 0:
         rowNumminus1 = 0
     else:
         rowNumminus1 = prev_state[2]-1
-    max_next_state = max(q[cur_state[0]][cur_state[1]][prev_state[2]][cur_state[3]][cur_state[4]],
-                         q[cur_state[0]][cur_state[1]][rowNumplus1][cur_state[3]][cur_state[4]],
-                         q[cur_state[0]][cur_state[1]][rowNumminus1][cur_state[3]][cur_state[4]])
+    max_next_state = max(q[cur_state[0]][cur_state[1]][cur_state[2]][cur_state[3]][cur_state[4]],
+                         q[cur_state[0]][cur_state[1]][cur_state[2]][cur_state[3]][cur_state[4]],
+                         q[cur_state[0]][cur_state[1]][cur_state[2]][cur_state[3]][cur_state[4]])
+    # max_next_state = max(q[prev_state[0]][prev_state[1]][rowNumplus1][prev_state[3]][prev_state[4]],
+    #                      q[prev_state[0]][prev_state[1]][prev_state[2]][prev_state[3]][prev_state[4]],
+    #                      q[prev_state[0]][prev_state[1]][rowNumminus1][prev_state[3]][prev_state[4]])
+
+
     ### This mess of a line determines the Q value for the last state as based on the lecture algorithm ###
-    q[prev_state[0]][prev_state[1]][prev_state[2]][prev_state[3]][prev_state[4]] = q[prev_state[0]][prev_state[1]][prev_state[2]][prev_state[3]][prev_state[4]]+(alpha/(learning_times[prev_state[0]][prev_state[1]][prev_state[2]][prev_state[3]][prev_state[4]]+alpha))*(r[prev_state[0]][prev_state[1]][prev_state[2]][prev_state[3]][prev_state[4]]+gamma*max_next_state-q[prev_state[0]][prev_state[1]][prev_state[2]][prev_state[3]][prev_state[4]])
+    if not firstState and prev_state != cur_state:
+        print(prev_state)
+        print(cur_state)
+        print(max_next_state)
+        print((alpha/(learning_times[prev_state[0]][prev_state[1]][prev_state[2]][prev_state[3]][prev_state[4]]+alpha)))
+        print(gamma*max_next_state)
+        print()
+        q[prev_state[0]][prev_state[1]][prev_state[2]][prev_state[3]][prev_state[4]] = q[prev_state[0]][prev_state[1]][prev_state[2]][prev_state[3]][prev_state[4]]+(alpha/(learning_times[prev_state[0]][prev_state[1]][prev_state[2]][prev_state[3]][prev_state[4]]+alpha))*(r[prev_state[0]][prev_state[1]][prev_state[2]][prev_state[3]][prev_state[4]]+gamma*max_next_state-q[prev_state[0]][prev_state[1]][prev_state[2]][prev_state[3]][prev_state[4]])
 
 #Save the list in a file
 def save_q_learning(q):
-    ### r matrix [column][row_ball][row_paddle][x_speed][y_speed]###
     with open(out_file, 'w') as outfile:
-        out_file.write(str(columns)+"\n")
-        out_file.write(str(rows)+"\n")
-        out_file.write(str(rows)+"\n")
-        out_file.write(str(2)+"\n")
-        out_file.write(str(3)+"\n")
+        outfile.write(str(columns)+"\n")
+        outfile.write(str(rows)+"\n")
+        outfile.write(str(rows)+"\n")
+        outfile.write(str(2)+"\n")
+        outfile.write(str(3)+"\n")
 
         for v in q:
             for w in v:
                 for x in w:
                     for y in x:
                         for z in y:
-                            out_file.write(str(z)+"\n")
-    return
+                            outfile.write(str(z)+"\n")
+
 #Load list from a file
-def load_q_learning(q):
-    return
+def load_q_learning():
+    with open(out_file, 'r') as outfile:
+        list_entries = [0 for x in range(5)]
+        for x in range(5):
+            list_entries[x] = outfile.readline().strip()
+
+        q = [[[[[0 for v in range(int(list_entries[4]))] for w in range(int(list_entries[3]))]for x in range(int(list_entries[2]))]for y in range(int(list_entries[1]))]for z in range(int(list_entries[0]))]
+
+        for v in range(int(list_entries[0])):
+            for w in range(int(list_entries[1])):
+                for x in range(int(list_entries[2])):
+                    for y in range(int(list_entries[3])):
+                        for z in range(int(list_entries[4])):
+                            q[v][w][x][y][z] = float(outfile.readline().strip())
+    return q
+
 #Main function
 def main():
-    pygame.init()
+    global graphics
+    global Nc, gamma, alpha
+    global firstState
+    if len(sys.argv)!=3:
+        print("Give argument 'g' for a gui and any other letter for no gui.")
+        print("Give second argument 't' for test and 'l' for learn.")
+        print("Note that test still trains the network; values are tweaked to make training less prominant.")
+        return
+
+    if sys.argv[1] == 'g':
+        graphics = True
+    else:
+        graphics = False
+
+    if sys.argv[2] == 't':
+        q = load_q_learning()
+        Nc = 0
+        gamma = 2.0
+        maxGames = 5000
+        alpha = 1.0
+    elif sys.argv[2] == 'l':
+        ### q matrix [column][row_ball][row_paddle][x_speed][y_speed]###
+        q = [[[[[0 for v in range(3)] for w in range(2)] for x in range(columns)] for y in range(columns)] for z in range(rows)]
+        maxGames = 500000
+    else:
+        print("Please give argument 't' for test or 'l' for learn.")
+        return
+
+    if graphics:
+        pygame.init()
     global DISPLAYSURF
     ##Font information
     global BASICFONT, BASICFONTSIZE, learning_times
@@ -271,30 +331,29 @@ def main():
 
     ### r matrix [column][row_ball][row_paddle][x_speed][y_speed]###
     r = [[[[[0 for v in range(3)] for w in range(2)] for x in range(columns)] for y in range(columns)] for z in range(rows)]
-    ### q matrix [column][row_ball][row_paddle][x_speed][y_speed]###
-    q = [[[[[0 for v in range(3)] for w in range(2)] for x in range(columns)] for y in range(columns)] for z in range(rows)]
     ### state machines for prev and cur state [column][row_ball][row_paddle][x_speed][y_speed]###
     prev_state = (0,0,0,0,0)
     cur_state = (0,0,0,0,0)
 
     ### initialize reward matrix ###
-    for x in range(columns):
-        for y in range(columns):
+    for x in range(rows):
+        for y in range(rows):
             if y == x:
-                r[rows-1][x][y][1][-1] = 1
-                r[rows-1][x][y][1][0] = 1
-                r[rows-1][x][y][1][1] = 1
+                r[columns-1][x][y][1][0] = 1
+                r[columns-1][x][y][1][1] = 1
+                r[columns-1][x][y][1][2] = 1
             else:
-                r[rows-1][x][y][1][-1] = -1
-                r[rows-1][x][y][1][0] = -1
-                r[rows-1][x][y][1][1] = -1
+                r[columns-1][x][y][1][0] = -1
+                r[columns-1][x][y][1][1] = -1
+                r[columns-1][x][y][1][2] = -1
 
-    BASICFONTSIZE = 20
-    BASICFONT = pygame.font.Font('freesansbold.ttf', BASICFONTSIZE)
+    if graphics:
+        BASICFONTSIZE = 20
+        BASICFONT = pygame.font.Font('freesansbold.ttf', BASICFONTSIZE)
 
-    FPSCLOCK = pygame.time.Clock()
-    DISPLAYSURF = pygame.display.set_mode((width,height))
-    pygame.display.set_caption('Pong HW4')
+        FPSCLOCK = pygame.time.Clock()
+        DISPLAYSURF = pygame.display.set_mode((width,height))
+        pygame.display.set_caption('Pong HW4')
 
     #Initiate variable and set starting positions
     #any future changes made within rectangles
@@ -308,66 +367,90 @@ def main():
     ball = pygame.Rect(game_state_tuple[0], game_state_tuple[1], paddle_width, paddle_width)
 
     #Draws the starting position of the Arena
-    drawArena()
-    drawPaddle(paddle1)
-    drawPaddle(paddle2)
-    drawBall(ball)
+    if graphics:
+        drawArena()
+        drawPaddle(paddle1)
+        drawPaddle(paddle2)
+        drawBall(ball)
 
-    pygame.mouse.set_visible(False) # make cursor invisible
+        pygame.mouse.set_visible(False) # make cursor invisible
 
     determineState(paddle2, ball, game_state_tuple[2], game_state_tuple[3])
+    firstState = False
     gamesNum = 1
+    maxHits = 0
+    avgHits = 0
 
     while True: #main game loop
-        for event in pygame.event.get():
-            if event.type == QUIT:
-                pygame.quit()
-                break
+        if graphics:
+            for event in pygame.event.get():
+                if event.type == QUIT:
+                    pygame.quit()
+                    break
 
-        if game_state_tuple[2] == 0:
+        if score < 0:
+            score = 0
+            q[cur_state[0]][cur_state[1]][cur_state[2]][cur_state[3]][cur_state[4]] = r[cur_state[0]][cur_state[1]][cur_state[2]][cur_state[3]][cur_state[4]]
+            firstState = True
             # play_again = raw_input("Press 'p' to play again")
             # if play_again != 'p':
             #     break
             print("Game Number",gamesNum)
+            if gamesNum == maxGames:
+                save_q_learning(q)
+                print("The average number of hits was", avgHits/1.0/gamesNum)
+                print("The max number of hits was", maxHits)
+                return
             gamesNum += 1
             resetGame(game_state_tuple)
             paddle1 = pygame.Rect(PADDLEOFFSET, 0, paddle_width, paddle_height1)
             paddle2 = pygame.Rect(width - PADDLEOFFSET - paddle_width, game_state_tuple[4]-paddle_height2/2, paddle_width, paddle_height2)
             ball = pygame.Rect(game_state_tuple[0], game_state_tuple[1], paddle_width, paddle_width)
 
-        drawArena()
-        drawPaddle(paddle1)
-        drawPaddle(paddle2)
-        drawBall(ball)
+        if graphics:
+            drawArena()
+            drawPaddle(paddle1)
+            drawPaddle(paddle2)
+            drawBall(ball)
 
         ball = moveBall(ball, game_state_tuple[2]*width, game_state_tuple[3]*height)
         game_state_tuple[2], game_state_tuple[3] = checkEdgeCollision(ball, game_state_tuple[2], game_state_tuple[3])
+        lastScore = score
         score = checkPointScored(paddle2, ball, score, game_state_tuple[2])
 
-        if game_state_tuple[2] != 0:
+        if score < 0:
+            # print(lastScore)
+            if lastScore > maxHits:
+                maxHits = lastScore
+            avgHits+=lastScore
+
+        else:
+            prev_state = cur_state
+            cur_state = determineState(paddle2, ball, game_state_tuple[2], game_state_tuple[3])
             game_state_tuple[2], game_state_tuple[3] = checkHitBall(ball, paddle1, paddle2, game_state_tuple[2], game_state_tuple[3])
+            # print(cur_state)
             paddle1 = hard_coded_paddle (ball, paddle1)
             paddle2 = q_paddle(q, cur_state, paddle2)
 
             displayScore(score)
 
-            pygame.display.update()
-            FPSCLOCK.tick(FPS)
+            if graphics:
+                pygame.display.update()
+                FPSCLOCK.tick(FPS)
 
-            prev_state = cur_state
-            cur_state = determineState(paddle2, ball, game_state_tuple[2], game_state_tuple[3])
-            print(cur_state)
+            # print(cur_state)
             learning_times[cur_state[0]][cur_state[1]][cur_state[2]][cur_state[3]][cur_state[4]]+=1
-            print(q[cur_state[0]][cur_state[1]][cur_state[2]])
-            print()
+            # print(q[cur_state[0]][cur_state[1]][cur_state[2]])
+            # print()
             # for v in learning_times:
             #     for w in v:
             #         for x in w:
             #             for y in x:
             #                 for z in y:
-            #                     if z >0:
+            #                     IF Z >0:
             #                         print(z)
             eval_q(q, r, prev_state, cur_state)
+            firstState = False
 
 if __name__=='__main__':
     # pdb.set_trace()

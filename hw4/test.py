@@ -1,4 +1,6 @@
-with open("./test.txt", 'w') as outfile:
-    outfile.write("x")
-    outfile.write("y")
-    outfile.write("z")
+testList = [[1,1,1],[2,2,2]]
+testList[1][2]=3
+
+for y in testList:
+    for x in y:
+        print(x)
