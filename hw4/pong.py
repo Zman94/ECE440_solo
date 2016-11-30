@@ -342,13 +342,12 @@ def main():
     if sys.argv[2] == 't':
         q = load_q_learning()
         Nc = 0
-        gamma = 2.0
+        gamma = .8
         maxGames = 5000
-        alpha = 1.0
     elif sys.argv[2] == 'l':
         ### q matrix [column][row_ball][row_paddle][x_speed][y_speed]###
         q = [[[[[0 for v in range(3)] for w in range(2)] for x in range(columns)] for y in range(columns)] for z in range(rows)]
-        maxGames = 500000
+        maxGames = 5000
     else:
         print("Please give argument 't' for test or 'l' for learn.")
         return
