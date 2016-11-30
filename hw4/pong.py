@@ -30,7 +30,7 @@ failure_reward = -1
 gamma = .9
 alpha = 100.0
 learning_times = [[[[[0 for v in range(3)] for w in range(2)] for x in range(columns)] for y in range(columns)] for z in range(rows)]
-Nc = 1
+Nc = 5
 # to stop the algorithm from processing the a negative on the first state after a failure
 
 #File to store trained list
@@ -60,6 +60,8 @@ def drawBall(ball):
 #moves the ball returns new position
 def moveBall(ball, velocity_x, velocity_y):
     ball.x += velocity_x
+    if ball.x < PADDLEOFFSET:
+        ball.x = PADDLEOFFSET
     ball.y += velocity_y
     return ball
 
@@ -134,7 +136,7 @@ def hard_coded_paddle(ball, paddle1):
 
 #Q trained computer player
 def q_paddle(q, cur_state, paddle2):
-    print(cur_state)
+    # print(cur_state)
     curminus1 = cur_state[2]-1
     curplus1 = cur_state[2]+1
 
@@ -142,30 +144,56 @@ def q_paddle(q, cur_state, paddle2):
         curminus1 = 0
     if cur_state[2]+1 >= rows:
         curplus1 = rows-1
-    print("Q is")
-    print(q[cur_state[0]][cur_state[1]][curminus1][cur_state[3]][cur_state[4]])
-    print(q[cur_state[0]][cur_state[1]][cur_state[2]][cur_state[3]][cur_state[4]])
-    print(q[cur_state[0]][cur_state[1]][curplus1][cur_state[3]][cur_state[4]])
+    # print("Q is")
+    # print(q[cur_state[0]][cur_state[1]][curminus1][cur_state[3]][cur_state[4]])
+    # print(q[cur_state[0]][cur_state[1]][cur_state[2]][cur_state[3]][cur_state[4]])
+    # print(q[cur_state[0]][cur_state[1]][curplus1][cur_state[3]][cur_state[4]])
 
-    if learning_times[cur_state[0]][cur_state[1]][cur_state[2]][cur_state[3]][cur_state[4]] < Nc:
-        max_state = 0
-    elif learning_times[cur_state[0]][cur_state[1]][curplus1][cur_state[3]][cur_state[4]] < Nc:
-        max_state = 1
-    elif learning_times[cur_state[0]][cur_state[1]][curminus1][cur_state[3]][cur_state[4]] < Nc:
-        max_state = -1
-    else: #only enter the utility function if all explorations are satisfied
-        if q[cur_state[0]][cur_state[1]][curminus1][cur_state[3]][cur_state[4]] > q[cur_state[0]][cur_state[1]][curplus1][cur_state[3]][cur_state[4]]:
+    randomSample = random.randint(0,2)
+    exploring = False
+    if randomSample == 0:
+        if learning_times[cur_state[0]][cur_state[1]][cur_state[2]][cur_state[3]][cur_state[4]] < Nc:
+            max_state = 0
+            exploring = True
+        elif learning_times[cur_state[0]][cur_state[1]][curplus1][cur_state[3]][cur_state[4]] < Nc:
+            max_state = 1
+            exploring = True
+        elif learning_times[cur_state[0]][cur_state[1]][curminus1][cur_state[3]][cur_state[4]] < Nc:
+            max_state = -1
+            exploring = True
+    elif randomSample == 1:
+        if learning_times[cur_state[0]][cur_state[1]][curplus1][cur_state[3]][cur_state[4]] < Nc:
+            max_state = 1
+            exploring = True
+        elif learning_times[cur_state[0]][cur_state[1]][curminus1][cur_state[3]][cur_state[4]] < Nc:
+            max_state = -1
+            exploring = True
+        elif learning_times[cur_state[0]][cur_state[1]][cur_state[2]][cur_state[3]][cur_state[4]] < Nc:
+            max_state = 0
+            exploring = True
+    elif randomSample == 2:
+        if learning_times[cur_state[0]][cur_state[1]][curminus1][cur_state[3]][cur_state[4]] < Nc:
+            max_state = -1
+            exploring = True
+        elif learning_times[cur_state[0]][cur_state[1]][cur_state[2]][cur_state[3]][cur_state[4]] < Nc:
+            max_state = 0
+            exploring = True
+        elif learning_times[cur_state[0]][cur_state[1]][curplus1][cur_state[3]][cur_state[4]] < Nc:
+            max_state = 1
+            exploring = True
+    if not exploring: #only enter the utility function if all explorations are satisfied
+        if q[cur_state[0]][cur_state[1]][curminus1][cur_state[3]][cur_state[4]] >= q[cur_state[0]][cur_state[1]][curplus1][cur_state[3]][cur_state[4]]:
             if q[cur_state[0]][cur_state[1]][curminus1][cur_state[3]][cur_state[4]] > q[cur_state[0]][cur_state[1]][cur_state[2]][cur_state[3]][cur_state[4]]:
                 max_state = -1
             else:
                 max_state = 0
         else:
-            if q[cur_state[0]][cur_state[1]][curplus1][cur_state[3]][cur_state[4]] >= q[cur_state[0]][cur_state[1]][cur_state[2]][cur_state[3]][cur_state[4]]:
+            if q[cur_state[0]][cur_state[1]][curplus1][cur_state[3]][cur_state[4]] > q[cur_state[0]][cur_state[1]][cur_state[2]][cur_state[3]][cur_state[4]]:
                 max_state = 1
             else:
                 max_state = 0
 
-    print("This is max state", max_state)
+    # print("This is max state", max_state)
     paddle2.y += (max_state*height*.04)
     return paddle2
 
@@ -255,12 +283,12 @@ def eval_q(q, r, prev_state, cur_state):
 
     ### This mess of a line determines the Q value for the last state as based on the lecture algorithm ###
     if prev_state != cur_state:
-        print(prev_state)
-        print(cur_state)
-        print((alpha/(learning_times[prev_state[0]][prev_state[1]][prev_state[2]][prev_state[3]][prev_state[4]]+alpha)))
-        print(gamma*max_next_state)
-        print(r[prev_state[0]][prev_state[1]][prev_state[2]][prev_state[3]][prev_state[4]])
-        print()
+        # print(prev_state)
+        # print(cur_state)
+        # print((alpha/(learning_times[prev_state[0]][prev_state[1]][prev_state[2]][prev_state[3]][prev_state[4]]+alpha)))
+        # print(gamma*max_next_state)
+        # print(r[prev_state[0]][prev_state[1]][prev_state[2]][prev_state[3]][prev_state[4]])
+        # print()
         q[prev_state[0]][prev_state[1]][prev_state[2]][prev_state[3]][prev_state[4]] = q[prev_state[0]][prev_state[1]][prev_state[2]][prev_state[3]][prev_state[4]]+(alpha/(learning_times[prev_state[0]][prev_state[1]][prev_state[2]][prev_state[3]][prev_state[4]]+alpha))*(r[prev_state[0]][prev_state[1]][prev_state[2]][prev_state[3]][prev_state[4]]+gamma*max_next_state-q[prev_state[0]][prev_state[1]][prev_state[2]][prev_state[3]][prev_state[4]])
 
 #Save the list in a file
@@ -320,7 +348,7 @@ def main():
     elif sys.argv[2] == 'l':
         ### q matrix [column][row_ball][row_paddle][x_speed][y_speed]###
         q = [[[[[0 for v in range(3)] for w in range(2)] for x in range(columns)] for y in range(columns)] for z in range(rows)]
-        maxGames = 100000
+        maxGames = 500000
     else:
         print("Please give argument 't' for test or 'l' for learn.")
         return
@@ -350,6 +378,10 @@ def main():
                 r[columns-1][x][y][1][0] = -1
                 r[columns-1][x][y][1][1] = -1
                 r[columns-1][x][y][1][2] = -1
+
+                q[columns-1][x][y][1][0] = -1
+                q[columns-1][x][y][1][1] = -1
+                q[columns-1][x][y][1][2] = -1
 
     if graphics:
         BASICFONTSIZE = 20
@@ -397,7 +429,9 @@ def main():
             # play_again = raw_input("Press 'p' to play again")
             # if play_again != 'p':
             #     break
+            # print()
             print("Game Number",gamesNum)
+            # print()
             if gamesNum == maxGames:
                 save_q_learning(q)
                 print("The average number of hits was", avgHits/1.0/gamesNum)
