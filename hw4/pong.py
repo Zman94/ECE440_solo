@@ -27,10 +27,10 @@ rows = 12
 columns = 12
 victory_reward = 1
 failure_reward = -1
-gamma = 5
-alpha = 1000.0
+gamma = .9
+alpha = 100.0
 learning_times = [[[[[0 for v in range(3)] for w in range(2)] for x in range(columns)] for y in range(columns)] for z in range(rows)]
-Nc = 5
+Nc = 1
 # to stop the algorithm from processing the a negative on the first state after a failure
 
 #File to store trained list
@@ -134,7 +134,7 @@ def hard_coded_paddle(ball, paddle1):
 
 #Q trained computer player
 def q_paddle(q, cur_state, paddle2):
-    # print(cur_state)
+    print(cur_state)
     curminus1 = cur_state[2]-1
     curplus1 = cur_state[2]+1
 
@@ -142,10 +142,10 @@ def q_paddle(q, cur_state, paddle2):
         curminus1 = 0
     if cur_state[2]+1 >= rows:
         curplus1 = rows-1
-    # print("Q is")
-    # print(q[cur_state[0]][cur_state[1]][curminus1][cur_state[3]][cur_state[4]])
-    # print(q[cur_state[0]][cur_state[1]][cur_state[2]][cur_state[3]][cur_state[4]])
-    # print(q[cur_state[0]][cur_state[1]][curplus1][cur_state[3]][cur_state[4]])
+    print("Q is")
+    print(q[cur_state[0]][cur_state[1]][curminus1][cur_state[3]][cur_state[4]])
+    print(q[cur_state[0]][cur_state[1]][cur_state[2]][cur_state[3]][cur_state[4]])
+    print(q[cur_state[0]][cur_state[1]][curplus1][cur_state[3]][cur_state[4]])
 
     if learning_times[cur_state[0]][cur_state[1]][cur_state[2]][cur_state[3]][cur_state[4]] < Nc:
         max_state = 0
@@ -165,7 +165,7 @@ def q_paddle(q, cur_state, paddle2):
             else:
                 max_state = 0
 
-    # print("This is max state", max_state)
+    print("This is max state", max_state)
     paddle2.y += (max_state*height*.04)
     return paddle2
 
@@ -188,16 +188,22 @@ def resetGame(game_state_tuple):
 #Determine cur_state
 def determineState(paddle, ball, velocity_x, velocity_y):
     n = 0
-    while (width/1.0/columns)*(n+1) < (ball.left+ball.right)/2.0:
+    while (width/1.0/columns)*(n+1) < (ball.left+ball.right)/2.0 and n != columns:
         n+=1
+    if n == columns:
+        n-=1
 
     m = 0
-    while (height/1.0/rows)*(m+1) < (ball.top+ball.bottom)/2.0:
+    while (height/1.0/rows)*(m+1) < (ball.top+ball.bottom)/2.0 and m != rows:
         m+=1
+    if m == rows:
+        m-=1
 
     l = 0
-    while (height/1.0/rows)*(l+1) < (paddle.top+paddle.bottom)/2.0:
+    while (height/1.0/rows)*(l+1) < (paddle.top+paddle.bottom)/2.0 and l != rows:
         l+=1
+    if l == rows:
+        l-=1
 
     if velocity_x < 0:
         k = 0
@@ -231,17 +237,17 @@ def determineState(paddle, ball, velocity_x, velocity_y):
 
 #Evaluate Q matrix
 def eval_q(q, r, prev_state, cur_state):
-    if prev_state[2] >= rows-1:
+    if cur_state[2] >= rows-1:
         rowNumplus1 = rows-1
     else:
         rowNumplus1 = cur_state[2]+1
-    if prev_state[2] <= 0:
+    if cur_state[2] <= 0:
         rowNumminus1 = 0
     else:
-        rowNumminus1 = prev_state[2]-1
-    max_next_state = max(q[cur_state[0]][cur_state[1]][cur_state[2]][cur_state[3]][cur_state[4]],
+        rowNumminus1 = cur_state[2]-1
+    max_next_state = max(q[cur_state[0]][cur_state[1]][rowNumplus1][cur_state[3]][cur_state[4]],
                          q[cur_state[0]][cur_state[1]][cur_state[2]][cur_state[3]][cur_state[4]],
-                         q[cur_state[0]][cur_state[1]][cur_state[2]][cur_state[3]][cur_state[4]])
+                         q[cur_state[0]][cur_state[1]][rowNumminus1][cur_state[3]][cur_state[4]])
     # max_next_state = max(q[prev_state[0]][prev_state[1]][rowNumplus1][prev_state[3]][prev_state[4]],
     #                      q[prev_state[0]][prev_state[1]][prev_state[2]][prev_state[3]][prev_state[4]],
     #                      q[prev_state[0]][prev_state[1]][rowNumminus1][prev_state[3]][prev_state[4]])
@@ -249,11 +255,12 @@ def eval_q(q, r, prev_state, cur_state):
 
     ### This mess of a line determines the Q value for the last state as based on the lecture algorithm ###
     if prev_state != cur_state:
-        # print(prev_state)
-        # print(cur_state)
-        # print((alpha/(learning_times[prev_state[0]][prev_state[1]][prev_state[2]][prev_state[3]][prev_state[4]]+alpha)))
-        # print(gamma*max_next_state)
-        # print()
+        print(prev_state)
+        print(cur_state)
+        print((alpha/(learning_times[prev_state[0]][prev_state[1]][prev_state[2]][prev_state[3]][prev_state[4]]+alpha)))
+        print(gamma*max_next_state)
+        print(r[prev_state[0]][prev_state[1]][prev_state[2]][prev_state[3]][prev_state[4]])
+        print()
         q[prev_state[0]][prev_state[1]][prev_state[2]][prev_state[3]][prev_state[4]] = q[prev_state[0]][prev_state[1]][prev_state[2]][prev_state[3]][prev_state[4]]+(alpha/(learning_times[prev_state[0]][prev_state[1]][prev_state[2]][prev_state[3]][prev_state[4]]+alpha))*(r[prev_state[0]][prev_state[1]][prev_state[2]][prev_state[3]][prev_state[4]]+gamma*max_next_state-q[prev_state[0]][prev_state[1]][prev_state[2]][prev_state[3]][prev_state[4]])
 
 #Save the list in a file
@@ -313,7 +320,7 @@ def main():
     elif sys.argv[2] == 'l':
         ### q matrix [column][row_ball][row_paddle][x_speed][y_speed]###
         q = [[[[[0 for v in range(3)] for w in range(2)] for x in range(columns)] for y in range(columns)] for z in range(rows)]
-        maxGames = 5000000
+        maxGames = 100000
     else:
         print("Please give argument 't' for test or 'l' for learn.")
         return
@@ -401,6 +408,7 @@ def main():
             paddle1 = pygame.Rect(PADDLEOFFSET, 0, paddle_width, paddle_height1)
             paddle2 = pygame.Rect(width - PADDLEOFFSET - paddle_width, game_state_tuple[4]-paddle_height2/2, paddle_width, paddle_height2)
             ball = pygame.Rect(game_state_tuple[0], game_state_tuple[1], paddle_width, paddle_width)
+            cur_state = determineState(paddle2, ball, game_state_tuple[2], game_state_tuple[3])
 
         if graphics:
             drawArena()
