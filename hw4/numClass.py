@@ -7,6 +7,10 @@ import pdb
 
 start_time = time.time()
 
+epochs = 100
+curEpoch = 0
+alpha = 1000
+
 def main():
     if len(sys.argv)!=2:
         print("Give argument 'f' for face data and 'n' for number data.")
@@ -31,15 +35,15 @@ def main():
         ### Initialize to one for laplacian smoothing ###
         ### KEY : [Number][row][column] ###
         trainedList = {0: [[LP for i in range(M)] for j in range(W)],
-                    1: [[LP for i in range(M)] for j in range(W)],
-                    2: [[LP for i in range(M)] for j in range(W)],
-                    3: [[LP for i in range(M)] for j in range(W)],
-                    4: [[LP for i in range(M)] for j in range(W)],
-                    5: [[LP for i in range(M)] for j in range(W)],
-                    6: [[LP for i in range(M)] for j in range(W)],
-                    7: [[LP for i in range(M)] for j in range(W)],
-                    8: [[LP for i in range(M)] for j in range(W)],
-                    9: [[LP for i in range(M)] for j in range(W)]}
+                       1: [[LP for i in range(M)] for j in range(W)],
+                       2: [[LP for i in range(M)] for j in range(W)],
+                       3: [[LP for i in range(M)] for j in range(W)],
+                       4: [[LP for i in range(M)] for j in range(W)],
+                       5: [[LP for i in range(M)] for j in range(W)],
+                       6: [[LP for i in range(M)] for j in range(W)],
+                       7: [[LP for i in range(M)] for j in range(W)],
+                       8: [[LP for i in range(M)] for j in range(W)],
+                       9: [[LP for i in range(M)] for j in range(W)]}
     elif sys.argv[1] == "f":
         ### Files to train from and save training data ###
         trainingDigitFile = "./facedata/facedatatrain"
@@ -60,12 +64,13 @@ def main():
             classCount.append(0)
     else:
         print("Give either argument 'f' for face data or 'n' for number data.")
-    output_file = "./training.txt"
+
     ### List to display numbers generated from AI ###
     numbers_classified = list()
     trainVal = list()
     testVal = list()
     confusionMatrix = [[0 for i in range(10)] for j in range(10)]
+
     read_trainingVal(trainingValueFile, trainVal)
     if sys.argv[1] == 'n':
         train_network(trainingDigitFile, trainVal, trainedList, classCount, LP, M)
@@ -76,10 +81,10 @@ def main():
         determine_accuracy_face(testVal, numbers_classified)
         return
     # write_training(output_file, trainedList)
-    read_testVal(testValueFile, testVal)
-    test_values(testDigitFile, testVal, trainedList, numbers_classified, classCount, M)
-    determine_accuracy(testVal, numbers_classified, confusionMatrix)
-    print_odds_ratios(trainedList)
+    # read_testVal(testValueFile, testVal)
+    # test_values(testDigitFile, testVal, trainedList, numbers_classified, classCount, M)
+    # determine_accuracy(testVal, numbers_classified, confusionMatrix)
+    # print_odds_ratios(trainedList)
     return
 
 def read_trainingVal(input_file, trainVal):
@@ -93,49 +98,70 @@ def read_testVal(input_file, testVal):
             testVal.append(line[0])
 
 def train_network(input_file, trainVal, trainedList, classCount, LP, M):
+    global curEpoch
     trainValNumber = 0
-    firstTime = True
     i = 0 # line in picture
     j = 0 # pixel in line
-    with open(input_file) as f:
-        curNumber = int(trainVal[trainValNumber])
-        classCount[curNumber]+=1
-        for line in f:
-            # if firstTime == True:
-            #     firstTime = False
-            #     continue
-            if i >= M:
-                trainValNumber+=1
-                if trainValNumber==len(trainVal):
-                    print("Error: More Train Values than Train Digits")
-                    sys.exit()
-                curNumber = int(trainVal[trainValNumber])
-                classCount[curNumber]+=1
-                i = 0
-            j = 0
-            for letter in line:
-                if letter == '\n':
-                    continue
-                ### If gray or black, add 1 point to colored ###
-                elif letter == '+' or letter == '#':
-                    trainedList[curNumber][i][j]+=1
-                j+=1
-            i+=1
+    curEpoch = 0
+    for curEpoch in range(epochs):
+        with open(input_file) as f:
+            tempWeights = [[0 for x in range(M)] for y in range(M)]
+            curNumber = int(trainVal[trainValNumber])
+            # classCount[curNumber]+=1
+            for line in f:
+                if i >= M:
+                    trainValNumber+=1
+                    if trainValNumber==len(trainVal):
+                        print("Error: More Train Values than Train Digits")
+                        sys.exit()
+                    classified = classifiedAs(trainedList, tempWeights)
+                    if classified != curNumber:
+                        updateClassWeight(curNumber, classified, trainedList, tempWeights)
+                    print("Classified as", classified, "Real Val", curNumber)
+                    tempWeights = [[0 for x in range(M)] for y in range(M)]
+                    curNumber = int(trainVal[trainValNumber])
+                    classCount[curNumber]+=1
+                    i = 0
+                j = 0
+                for letter in line:
+                    if letter == '\n':
+                        continue
+                    ### If gray or black, add 1 point to colored ###
+                    elif letter == '+' or letter == '#':
+                        tempWeights[i][j] = 1
+                    j+=1
+                i+=1
+
     # for x in range(10):
-    #     for j in range(10):
-    #         print(trainedList[x][j])
-    #     print()
+    #     for j in range(28):
+    #         for i in range(28):
+    #             trainedList[x][j][i]/=(classCount[x]*1.0+LP*2.0)
+    #     # print(trainedList[x])
+    # ### Normalize classCount ###
+    # normalize_count_number = len(trainVal)
+    # normalize_count_number*=1.0
+    # for x in range(10):
+        # classCount[x]/=normalize_count_number
+        # classCount[x] = math.log(classCount[x])
+
+def classifiedAs(trainedList, tempWeights):
+    argMax = -1000
+    argCur = 0
+    maxClass = 0
     for x in range(10):
-        for j in range(28):
-            for i in range(28):
-                trainedList[x][j][i]/=(classCount[x]*1.0+LP*2.0)
-        # print(trainedList[x])
-    ### Normalize classCount ###
-    normalize_count_number = len(trainVal)
-    normalize_count_number*=1.0
-    for x in range(10):
-        classCount[x]/=normalize_count_number
-        classCount[x] = math.log(classCount[x])
+        for y in range(len(trainedList[x])):
+            for z in range(len(trainedList[x][y])):
+                argCur+=tempWeights[y][z]*trainedList[x][y][z]
+        if argCur > argMax:
+            argMax = argCur
+            maxClass = x
+    return maxClass
+
+def updateClassWeight(real, wrong, trainedList, tempWeights):
+    for y in range(len(trainedList[real])):
+        for x in range(len(trainedList[real][y])):
+            trainedList[real][y][x]+=(alpha/(alpha+curEpoch)*tempWeights[y][x])
+            trainedList[wrong][y][x]-=(alpha/(alpha+curEpoch)*tempWeights[y][x])
 
 def train_network_face(input_file, trainVal, trainedList, LP, W, H):
     trainValNumber = 0
