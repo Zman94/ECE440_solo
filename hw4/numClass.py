@@ -99,11 +99,12 @@ def read_testVal(input_file, testVal):
 
 def train_network(input_file, trainVal, trainedList, classCount, LP, M):
     global curEpoch
-    trainValNumber = 0
-    i = 0 # line in picture
-    j = 0 # pixel in line
     curEpoch = 0
     for curEpoch in range(epochs):
+        correctNum = 0
+        trainValNumber = 0
+        i = 0 # line in picture
+        j = 0 # pixel in line
         with open(input_file) as f:
             tempWeights = [[0 for x in range(M)] for y in range(M)]
             curNumber = int(trainVal[trainValNumber])
@@ -117,7 +118,9 @@ def train_network(input_file, trainVal, trainedList, classCount, LP, M):
                     classified = classifiedAs(trainedList, tempWeights)
                     if classified != curNumber:
                         updateClassWeight(curNumber, classified, trainedList, tempWeights)
-                    print("Classified as", classified, "Real Val", curNumber)
+                    else:
+                        correctNum +=1
+                    # print("Classified as", classified, "Real Val", curNumber)
                     tempWeights = [[0 for x in range(M)] for y in range(M)]
                     curNumber = int(trainVal[trainValNumber])
                     classCount[curNumber]+=1
@@ -131,6 +134,7 @@ def train_network(input_file, trainVal, trainedList, classCount, LP, M):
                         tempWeights[i][j] = 1
                     j+=1
                 i+=1
+        print(correctNum/1.0/len(trainVal))
 
     # for x in range(10):
     #     for j in range(28):
