@@ -3,11 +3,12 @@ from copy import deepcopy
 import sys
 import time
 import math
+import random
 import pdb
 
 start_time = time.time()
 
-epochs = 50
+epochs = 20
 curEpoch = 0
 alpha = 50
 
@@ -34,17 +35,50 @@ def main():
         ### Initialize the training lists with one gray and one black pixel in each location ###
         ### Initialize to one for laplacian smoothing ###
         ### KEY : [Number][row][column] ###
-        # Includes bias
-        trainedList = {0: [[float(0) for i in range(M+1)] for j in range(W+1)],
-                       1: [[float(0) for i in range(M+1)] for j in range(W+1)],
-                       2: [[float(0) for i in range(M+1)] for j in range(W+1)],
-                       3: [[float(0) for i in range(M+1)] for j in range(W+1)],
-                       4: [[float(0) for i in range(M+1)] for j in range(W+1)],
-                       5: [[float(0) for i in range(M+1)] for j in range(W+1)],
-                       6: [[float(0) for i in range(M+1)] for j in range(W+1)],
-                       7: [[float(0) for i in range(M+1)] for j in range(W+1)],
-                       8: [[float(0) for i in range(M+1)] for j in range(W+1)],
-                       9: [[float(0) for i in range(M+1)] for j in range(W+1)]}
+        # # Includes bias and random
+        # trainedList = {0: [[2*(random.random()-.5) for i in range(M+1)] for j in range(W+1)],
+        #                1: [[2*(random.random()-.5) for i in range(M+1)] for j in range(W+1)],
+        #                2: [[2*(random.random()-.5) for i in range(M+1)] for j in range(W+1)],
+        #                3: [[2*(random.random()-.5) for i in range(M+1)] for j in range(W+1)],
+        #                4: [[2*(random.random()-.5) for i in range(M+1)] for j in range(W+1)],
+        #                5: [[2*(random.random()-.5) for i in range(M+1)] for j in range(W+1)],
+        #                6: [[2*(random.random()-.5) for i in range(M+1)] for j in range(W+1)],
+        #                7: [[2*(random.random()-.5) for i in range(M+1)] for j in range(W+1)],
+        #                8: [[2*(random.random()-.5) for i in range(M+1)] for j in range(W+1)],
+        #                9: [[2*(random.random()-.5) for i in range(M+1)] for j in range(W+1)]}
+        # # Includes bias
+        # trainedList = {0: [[float(0) for i in range(M+1)] for j in range(W+1)],
+        #                1: [[float(0) for i in range(M+1)] for j in range(W+1)],
+        #                2: [[float(0) for i in range(M+1)] for j in range(W+1)],
+        #                3: [[float(0) for i in range(M+1)] for j in range(W+1)],
+        #                4: [[float(0) for i in range(M+1)] for j in range(W+1)],
+        #                5: [[float(0) for i in range(M+1)] for j in range(W+1)],
+        #                6: [[float(0) for i in range(M+1)] for j in range(W+1)],
+        #                7: [[float(0) for i in range(M+1)] for j in range(W+1)],
+        #                8: [[float(0) for i in range(M+1)] for j in range(W+1)],
+        #                9: [[float(0) for i in range(M+1)] for j in range(W+1)]}
+        # # Exclude bias
+        # trainedList = {0: [[float(0) for i in range(M)] for j in range(W)],
+        #                1: [[float(0) for i in range(M)] for j in range(W)],
+        #                2: [[float(0) for i in range(M)] for j in range(W)],
+        #                3: [[float(0) for i in range(M)] for j in range(W)],
+        #                4: [[float(0) for i in range(M)] for j in range(W)],
+        #                5: [[float(0) for i in range(M)] for j in range(W)],
+        #                6: [[float(0) for i in range(M)] for j in range(W)],
+        #                7: [[float(0) for i in range(M)] for j in range(W)],
+        #                8: [[float(0) for i in range(M)] for j in range(W)],
+        #                9: [[float(0) for i in range(M)] for j in range(W)]}
+        # Exclude bias and random
+        trainedList = {0: [[2*(random.random()-.5) for i in range(M)] for j in range(W)],
+                       1: [[2*(random.random()-.5) for i in range(M)] for j in range(W)],
+                       2: [[2*(random.random()-.5) for i in range(M)] for j in range(W)],
+                       3: [[2*(random.random()-.5) for i in range(M)] for j in range(W)],
+                       4: [[2*(random.random()-.5) for i in range(M)] for j in range(W)],
+                       5: [[2*(random.random()-.5) for i in range(M)] for j in range(W)],
+                       6: [[2*(random.random()-.5) for i in range(M)] for j in range(W)],
+                       7: [[2*(random.random()-.5) for i in range(M)] for j in range(W)],
+                       8: [[2*(random.random()-.5) for i in range(M)] for j in range(W)],
+                       9: [[2*(random.random()-.5) for i in range(M)] for j in range(W)]}
     elif sys.argv[1] == "f":
         ### Files to train from and save training data ###
         trainingDigitFile = "./facedata/facedatatrain"
@@ -101,14 +135,15 @@ def read_testVal(input_file, testVal):
 def train_network(input_file, trainVal, trainedList, classCount, LP, M):
     global curEpoch
     curEpoch = 0
-    curNumberImage = [[0 for x in range(M)] for y in range(M)]
+    curNumberImage = [[1 for x in range(M+1)] for y in range(M+1)]
     for curEpoch in range(epochs):
         correctNum = 0
         trainValNumber = 0
         i = 0 # line in picture
         j = 0 # pixel in line
         with open(input_file) as f:
-            tempWeights = [0 for x in range(10)]
+            # Starts at 1 for Bias
+            tempWeights = [1 for x in range(10)]
             curNumber = int(trainVal[trainValNumber])
             # classCount[curNumber]+=1
             for line in f:
@@ -130,8 +165,8 @@ def train_network(input_file, trainVal, trainedList, classCount, LP, M):
                     else:
                         correctNum +=1
                     # print("Classified as", classified, "Real Val", curNumber)
-                    tempWeights = [0 for x in range(10)]
-                    curNumberImage = [[0 for x in range(M)] for y in range(M)]
+                    tempWeights = [1 for x in range(10)]
+                    curNumberImage = [[1 for x in range(M+1)] for y in range(M+1)]
                     curNumber = int(trainVal[trainValNumber])
                     classCount[curNumber]+=1
                     i = 0
@@ -142,8 +177,9 @@ def train_network(input_file, trainVal, trainedList, classCount, LP, M):
                     ### If gray or black, add 1 point to colored ###
                     elif letter == '+' or letter == '#':
                         for x in range(10):
-                            curNumberImage[i][j] = 1
                             tempWeights[x] += trainedList[x][i][j]
+                    else:
+                        curNumberImage[i][j] = 0
                     j+=1
                 i+=1
         print(correctNum/1.0/len(trainVal))
@@ -161,10 +197,10 @@ def train_network(input_file, trainVal, trainedList, classCount, LP, M):
         # classCount[x] = math.log(classCount[x])
 
 def classifyAs(tempWeights):
-    argMax = -1000
-    maxClass = 0
+    argMax = 0
+    maxClass = -1
     for x in range(10):
-        if tempWeights[x] > argMax:
+        if tempWeights[x] > argMax or maxClass < 0:
             argMax = tempWeights[x]
             maxClass = x
     return maxClass
@@ -257,7 +293,7 @@ def test_values(input_file, trainedList, numbers_classified, classCount, M):
     ### Start the probabilities at those of probability for a class ###
     # maxPosteriors = [[-500 for x in range(2)] for y in range(10)]
     # minPosteriors = [[0 for x in range(2)] for y in range(10)]
-    curPic = [[" " for x in range(M)] for y in range(M)]
+    # curPic = [[" " for x in range(M)] for y in range(M)]
     probability_list = list()
     for x in range(10):
         probability_list.append(0)
@@ -268,7 +304,7 @@ def test_values(input_file, trainedList, numbers_classified, classCount, M):
     with open(input_file) as f:
         for line in f:
             if i >= M:
-                numbers_classified.append(classify_number(probability_list))
+                numbers_classified.append(classifyAs(probability_list))
                 # if probability_list[int(testVal[curNumberlist])] > maxPosteriors[int(testVal[curNumberlist])][0]:
                 #     maxPosteriors[int(testVal[curNumberlist])][1] = curPic
                 #     maxPosteriors[int(testVal[curNumberlist])][0] = probability_list[int(testVal[curNumberlist])]
@@ -280,7 +316,7 @@ def test_values(input_file, trainedList, numbers_classified, classCount, M):
                 #     print(numbers_classified)
                 #     return
                 i = 0
-                curPic = [[" " for x in range(M)] for y in range(M)]
+                # curPic = [[" " for x in range(M)] for y in range(M)]
                 for x in range(10):
                     probability_list[x]=0
                     # probability_list[x]=classCount[x]
@@ -293,10 +329,10 @@ def test_values(input_file, trainedList, numbers_classified, classCount, M):
                         continue
                     elif letter == '+' or letter == '#':
                         probability_list[curNumber]+=trainedList[curNumber][i][j]
-                        curPic[i][j] = letter
+                        # curPic[i][j] = letter
                     j+=1
             i+=1
-        numbers_classified.append(classify_number(probability_list))
+        numbers_classified.append(classifyAs(probability_list))
         # if probability_list[int(testVal[curNumberlist])] > maxPosteriors[int(testVal[curNumberlist])][0]:
         #     maxPosteriors[int(testVal[curNumberlist])][1] = curPic
         #     maxPosteriors[int(testVal[curNumberlist])][0] = probability_list[int(testVal[curNumberlist])]
@@ -307,10 +343,10 @@ def test_values(input_file, trainedList, numbers_classified, classCount, M):
         # if debuggingCounter == 15:
         #     print(numbers_classified)
         #     return
-        i = 0
-        for x in range(10):
+        # i = 0
+        # for x in range(10):
             # probability_list[x]=1
-            probability_list[x]=classCount[x]
+            # probability_list[x]=classCount[x]
         # for x in range(10):
         #     for y in range(M):
         #         for z in range(M):
@@ -319,16 +355,6 @@ def test_values(input_file, trainedList, numbers_classified, classCount, M):
         #         for z in range(M):
         #             print(minPosteriors[x][1][y][z],end="")
         #         print()
-
-def classify_number(probability_list):
-    # print(probability_list)
-    maxprob = 0
-    maxNumber = -1
-    for number in range(10):
-        if probability_list[number] > maxprob or maxNumber < 0:
-            maxNumber = number
-            maxprob = probability_list[number]
-    return maxNumber
 
 def determine_accuracy(testVal, numbers_classified, confusionMatrix):
     total_numbers = len(testVal)

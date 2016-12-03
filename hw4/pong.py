@@ -27,7 +27,7 @@ rows = 12
 columns = 12
 victory_reward = 1
 failure_reward = -1
-gamma = .99
+gamma = .95
 alpha = 100.0
 learning_times = [[[[[0 for v in range(3)] for w in range(2)] for x in range(columns)] for y in range(columns)] for z in range(rows)]
 Nc = 5
@@ -310,6 +310,10 @@ def main():
     global graphics
     global Nc, gamma, alpha
     global paddle_height1
+    global DISPLAYSURF
+    ##Font information
+    global BASICFONT, BASICFONTSIZE, learning_times
+
     if len(sys.argv)!=4:
         print("Give argument 'g' for a gui and any other letter for no gui.")
         print("Give second argument 't' for test and 'l' for learn.")
@@ -329,24 +333,22 @@ def main():
     else:
         graphics = False
 
-    if sys.argv[2] == 't':
-        q = load_q_learning()
-        Nc = 0
-        gamma = .95
-        maxGames = 5000
-    elif sys.argv[2] == 'l':
-        ### q matrix [column][row_ball][row_paddle][x_speed][y_speed]###
-        q = [[[[[0 for v in range(3)] for w in range(2)] for x in range(columns)] for y in range(columns)] for z in range(rows)]
-        maxGames = 100000
-    else:
-        print("Please give argument 't' for test or 'l' for learn.")
-        return
+    # if sys.argv[2] == 't':
+    #     q = load_q_learning()
+    #     Nc = 0
+    #     gamma = .95
+    #     maxGames = 5000
+    # elif sys.argv[2] == 'l':
+    ### q matrix [column][row_ball][row_paddle][x_speed][y_speed]###
+    q = [[[[[0 for v in range(3)] for w in range(2)] for x in range(columns)] for y in range(columns)] for z in range(rows)]
+    maxGames = 100000
+    # else:
+    #     print("Please give argument 't' for test or 'l' for learn.")
+    #     return
+    testNc = 0
+    testMaxGames = 5000
 
-    if graphics:
-        pygame.init()
-    global DISPLAYSURF
-    ##Font information
-    global BASICFONT, BASICFONTSIZE, learning_times
+    pygame.init()
     ### [ball_x, ball_y, velocity_x, velocity_y, paddle_y] ###
     game_state_tuple = [.5*width, .5*height, .03, .01, .5*height]
 
@@ -374,13 +376,12 @@ def main():
                 q[columns-1][x][y][1][1] = failure_reward
                 q[columns-1][x][y][1][2] = failure_reward
 
-    if graphics:
-        BASICFONTSIZE = 20
-        BASICFONT = pygame.font.Font('freesansbold.ttf', BASICFONTSIZE)
+    BASICFONTSIZE = 20
+    BASICFONT = pygame.font.Font('freesansbold.ttf', BASICFONTSIZE)
 
-        FPSCLOCK = pygame.time.Clock()
-        DISPLAYSURF = pygame.display.set_mode((width,height))
-        pygame.display.set_caption('Pong HW4')
+    FPSCLOCK = pygame.time.Clock()
+    DISPLAYSURF = pygame.display.set_mode((width,height))
+    pygame.display.set_caption('Pong HW4')
 
     #Initiate variable and set starting positions
     #any future changes made within rectangles
@@ -400,12 +401,97 @@ def main():
         drawPaddle(paddle2)
         drawBall(ball)
 
-        pygame.mouse.set_visible(False) # make cursor invisible
 
     determineState(paddle2, ball, game_state_tuple[2], game_state_tuple[3])
+
     gamesNum = 1
-    maxHits = 0
     avgHits = 0
+    maxHits = 0
+    totalWins = 0
+
+    while True: #main game loop
+        if graphics:
+            for event in pygame.event.get():
+                if event.type == QUIT:
+                    pygame.quit()
+                    break
+
+        if score < 0:
+            q[cur_state[0]][cur_state[1]][cur_state[2]][cur_state[3]][cur_state[4]] = r[cur_state[0]][cur_state[1]][cur_state[2]][cur_state[3]][cur_state[4]]
+            # play_again = raw_input("Press 'p' to play again")
+            # if play_again != 'p':
+            #     break
+            # print()
+            # print("Game Number",gamesNum)
+            # print()
+            if gamesNum > 90000:
+                graphics == True
+            if gamesNum == maxGames:
+                save_q_learning(q)
+                print("The average number of hits during training was", avgHits/1.0/gamesNum)
+                print("The max number of hits during training was", maxHits)
+                if sys.argv[3] == "2":
+                    print("The AI agent won", totalWins, "games out of", maxGames)
+                break
+            score = 0
+            gamesNum += 1
+            resetGame(game_state_tuple)
+            paddle1 = pygame.Rect(PADDLEOFFSET, 0, paddle_width, paddle_height1)
+            paddle2 = pygame.Rect(width - PADDLEOFFSET - paddle_width, game_state_tuple[4]-paddle_height2/2, paddle_width, paddle_height2)
+            ball = pygame.Rect(game_state_tuple[0], game_state_tuple[1], paddle_width, paddle_width)
+            cur_state = determineState(paddle2, ball, game_state_tuple[2], game_state_tuple[3])
+
+        if graphics:
+            drawArena()
+            drawPaddle(paddle1)
+            drawPaddle(paddle2)
+            drawBall(ball)
+
+        ball = moveBall(ball, game_state_tuple[2]*width, game_state_tuple[3]*height)
+        game_state_tuple[3], scoredSide = checkEdgeCollision(ball, game_state_tuple[2], game_state_tuple[3])
+        lastScore = score
+        score = checkPointScored(paddle2, paddle1, ball, score, game_state_tuple[2])
+
+        if score < 0:
+            totalWins+=scoredSide
+            if lastScore > maxHits:
+                print(lastScore)
+                maxHits = lastScore
+            avgHits+=lastScore
+
+        else:
+            prev_state = cur_state
+            cur_state = determineState(paddle2, ball, game_state_tuple[2], game_state_tuple[3])
+            game_state_tuple[2], game_state_tuple[3] = checkHitBall(ball, paddle1, paddle2, game_state_tuple[2], game_state_tuple[3])
+            # print(cur_state)
+            paddle1 = hard_coded_paddle (ball, paddle1)
+            paddle2 = q_paddle(q, cur_state, paddle2)
+
+            displayScore(score)
+
+            if graphics:
+                pygame.display.update()
+                FPSCLOCK.tick(FPS)
+
+            # print(cur_state)
+            learning_times[cur_state[0]][cur_state[1]][cur_state[2]][cur_state[3]][cur_state[4]]+=1
+            # print(q[cur_state[0]][cur_state[1]][cur_state[2]])
+            # print()
+            # for v in learning_times:
+            #     for w in v:
+            #         for x in w:
+            #             for y in x:
+            #                 for z in y:
+            #                     IF Z >0:
+            #                         print(z)
+            eval_q(q, r, prev_state, cur_state)
+
+    maxGames = testMaxGames
+    Nc = 1
+    gamesNum = 1
+    avgHits = 0
+    maxHits = 0
+    graphics = True
     totalWins = 0
 
     while True: #main game loop
@@ -422,7 +508,7 @@ def main():
             # if play_again != 'p':
             #     break
             # print()
-            print("Game Number",gamesNum)
+            # print("Game Number",gamesNum)
             # print()
             if gamesNum == maxGames:
                 save_q_learning(q)
