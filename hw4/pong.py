@@ -28,7 +28,7 @@ columns = 12
 victory_reward = 1
 failure_reward = -1
 gamma = .95
-alpha = 100.0
+alpha = 50.0
 learning_times = [[[[[0 for v in range(3)] for w in range(2)] for x in range(columns)] for y in range(columns)] for z in range(rows)]
 Nc = 5
 # to stop the algorithm from processing the a negative on the first state after a failure
