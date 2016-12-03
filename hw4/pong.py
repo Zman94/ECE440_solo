@@ -27,7 +27,7 @@ rows = 12
 columns = 12
 victory_reward = 1
 failure_reward = -1
-gamma = .9
+gamma = .99
 alpha = 100.0
 learning_times = [[[[[0 for v in range(3)] for w in range(2)] for x in range(columns)] for y in range(columns)] for z in range(rows)]
 Nc = 5
@@ -60,7 +60,7 @@ def drawBall(ball):
 #moves the ball returns new position
 def moveBall(ball, velocity_x, velocity_y):
     ball.x += velocity_x
-    if ball.x < PADDLEOFFSET:
+    if ball.x < PADDLEOFFSET and sys.argv[3] == '1':
         ball.x = PADDLEOFFSET
     ball.y += velocity_y
     return ball
@@ -68,30 +68,19 @@ def moveBall(ball, velocity_x, velocity_y):
 #Checks for a collision with a wall, and 'bounces' ball off it.
 #Returns new direction
 def checkEdgeCollision(ball, velocity_x, velocity_y):
+    scoredSide = 0
     if ball.top <= 0 or ball.bottom >= height:
         velocity_y = velocity_y * -1
-    if ball.left <= 0 or ball.right >= width:
-        velocity_x = 0
-    return velocity_x, velocity_y
+    elif ball.right >= width:
+        scoredSide = 0
+    elif ball.left < 0:
+        scoredSide = 1
+    return velocity_y, scoredSide
 
 #Checks is the ball has hit a paddle, and 'bounces' ball off it.
 def checkHitBall(ball, paddle1, paddle2, velocity_x, velocity_y):
     if velocity_x < 0 and paddle1.right >= ball.left and paddle1.top < ball.bottom and paddle1.bottom > ball.top:
         return -velocity_x, velocity_y
-    # if velocity_x < 0 and paddle1.right >= ball.left and paddle1.top < ball.bottom and paddle1.bottom > ball.top:
-    #     velocity_x*=-1
-    #     speed_up=(random.randint(-150,150)/10000.0)
-    #     velocity_x+=speed_up
-    #     velocity_y+=(random.randint(-300,300)/10000.0)
-    #     if velocity_x < .03:
-    #         velocity_x = .03
-    #     # if velocity_x > .1:
-    #     #     velocity_x = .1
-    #     # if velocity_y > .09:
-    #     #     velocity_y = .09
-    #     if velocity_y < -.06:
-    #         velocity_y = -.06
-    #     return velocity_x, velocity_y
     if velocity_x > 0 and paddle2.left <= ball.right and paddle2.top < ball.bottom and paddle2.bottom > ball.top:
         velocity_x*=-1
         speed_up=(random.randint(-150,150)/10000.0)
@@ -99,31 +88,23 @@ def checkHitBall(ball, paddle1, paddle2, velocity_x, velocity_y):
         velocity_y+=(random.randint(-300,300)/10000.0)
         if velocity_x > -.03:
             velocity_x = -.03
-        # if velocity_x < -.1:
-        #     velocity_x = -.1
-        # if velocity_y > .06:
-        #     velocity_y = .06
-        # if velocity_y < -.06:
-        #     velocity_y = -.06
         return velocity_x, velocity_y
     else:
         return velocity_x, velocity_y
 
 #Checks to see if a point has been scored returns new score
-def checkPointScored(paddle2, ball, score, velocity_x):
-    #reset points if left wall is hit
+def checkPointScored(paddle2, paddle1, ball, score, velocity_x):
+    #reset points if either wall is hit
     if ball.right >= width:
+        return -1
+    elif ball.right <= 0:
         return -1
     #1 point for hitting the ball
     elif velocity_x > 0 and paddle2.left <= ball.right and paddle2.top < ball.bottom and paddle2.bottom > ball.top:
         score += 1
         return score
-    #5 points for beating the other paddle
-    # elif ball.right == width - length:
-      #  score += 5
-      #  return score
-    #if no points scored, return score unchanged
-    else: return score
+    else:
+        return score
 
 #Artificial Intelligence of computer player
 def hard_coded_paddle(ball, paddle1):
@@ -328,10 +309,19 @@ def load_q_learning():
 def main():
     global graphics
     global Nc, gamma, alpha
-    if len(sys.argv)!=3:
+    global paddle_height1
+    if len(sys.argv)!=4:
         print("Give argument 'g' for a gui and any other letter for no gui.")
         print("Give second argument 't' for test and 'l' for learn.")
         print("Note that test still trains the network; values are tweaked to make training less prominant.")
+        print("Give third argument '1' for single player and '2' for 2 players.")
+        return
+    if sys.argv[3] == '1':
+        paddle_height1 = 1*height
+    elif sys.argv[3] == '2':
+        paddle_height1 =.2*height
+    else:
+        print("Please give argument 3 as either '1' or '2'")
         return
 
     if sys.argv[1] == 'g':
@@ -342,12 +332,12 @@ def main():
     if sys.argv[2] == 't':
         q = load_q_learning()
         Nc = 0
-        gamma = .8
+        gamma = .95
         maxGames = 5000
     elif sys.argv[2] == 'l':
         ### q matrix [column][row_ball][row_paddle][x_speed][y_speed]###
         q = [[[[[0 for v in range(3)] for w in range(2)] for x in range(columns)] for y in range(columns)] for z in range(rows)]
-        maxGames = 5000
+        maxGames = 100000
     else:
         print("Please give argument 't' for test or 'l' for learn.")
         return
@@ -366,21 +356,23 @@ def main():
     prev_state = (0,0,0,0,0)
     cur_state = (0,0,0,0,0)
 
+    scoredSide = 0
+
     ### initialize reward matrix ###
     for x in range(rows):
         for y in range(rows):
             if y == x:
-                r[columns-1][x][y][1][0] = 1
-                r[columns-1][x][y][1][1] = 1
-                r[columns-1][x][y][1][2] = 1
+                r[columns-1][x][y][1][0] = victory_reward
+                r[columns-1][x][y][1][1] = victory_reward
+                r[columns-1][x][y][1][2] = victory_reward
             else:
-                r[columns-1][x][y][1][0] = -1
-                r[columns-1][x][y][1][1] = -1
-                r[columns-1][x][y][1][2] = -1
+                r[columns-1][x][y][1][0] = failure_reward
+                r[columns-1][x][y][1][1] = failure_reward
+                r[columns-1][x][y][1][2] = failure_reward
 
-                q[columns-1][x][y][1][0] = -1
-                q[columns-1][x][y][1][1] = -1
-                q[columns-1][x][y][1][2] = -1
+                q[columns-1][x][y][1][0] = failure_reward
+                q[columns-1][x][y][1][1] = failure_reward
+                q[columns-1][x][y][1][2] = failure_reward
 
     if graphics:
         BASICFONTSIZE = 20
@@ -414,6 +406,7 @@ def main():
     gamesNum = 1
     maxHits = 0
     avgHits = 0
+    totalWins = 0
 
     while True: #main game loop
         if graphics:
@@ -435,6 +428,8 @@ def main():
                 save_q_learning(q)
                 print("The average number of hits was", avgHits/1.0/gamesNum)
                 print("The max number of hits was", maxHits)
+                if sys.argv[3] == "2":
+                    print("The AI agent won", totalWins, "games out of", maxGames)
                 return
             gamesNum += 1
             resetGame(game_state_tuple)
@@ -450,11 +445,12 @@ def main():
             drawBall(ball)
 
         ball = moveBall(ball, game_state_tuple[2]*width, game_state_tuple[3]*height)
-        game_state_tuple[2], game_state_tuple[3] = checkEdgeCollision(ball, game_state_tuple[2], game_state_tuple[3])
+        game_state_tuple[3], scoredSide = checkEdgeCollision(ball, game_state_tuple[2], game_state_tuple[3])
         lastScore = score
-        score = checkPointScored(paddle2, ball, score, game_state_tuple[2])
+        score = checkPointScored(paddle2, paddle1, ball, score, game_state_tuple[2])
 
         if score < 0:
+            totalWins+=scoredSide
             if lastScore > maxHits:
                 print(lastScore)
                 maxHits = lastScore

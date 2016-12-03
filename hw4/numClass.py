@@ -9,7 +9,7 @@ start_time = time.time()
 
 epochs = 50
 curEpoch = 0
-alpha = 1000
+alpha = 50
 
 def main():
     if len(sys.argv)!=2:
@@ -34,16 +34,17 @@ def main():
         ### Initialize the training lists with one gray and one black pixel in each location ###
         ### Initialize to one for laplacian smoothing ###
         ### KEY : [Number][row][column] ###
-        trainedList = {0: [[float(0) for i in range(M)] for j in range(W)],
-                       1: [[float(0) for i in range(M)] for j in range(W)],
-                       2: [[float(0) for i in range(M)] for j in range(W)],
-                       3: [[float(0) for i in range(M)] for j in range(W)],
-                       4: [[float(0) for i in range(M)] for j in range(W)],
-                       5: [[float(0) for i in range(M)] for j in range(W)],
-                       6: [[float(0) for i in range(M)] for j in range(W)],
-                       7: [[float(0) for i in range(M)] for j in range(W)],
-                       8: [[float(0) for i in range(M)] for j in range(W)],
-                       9: [[float(0) for i in range(M)] for j in range(W)]}
+        # Includes bias
+        trainedList = {0: [[float(0) for i in range(M+1)] for j in range(W+1)],
+                       1: [[float(0) for i in range(M+1)] for j in range(W+1)],
+                       2: [[float(0) for i in range(M+1)] for j in range(W+1)],
+                       3: [[float(0) for i in range(M+1)] for j in range(W+1)],
+                       4: [[float(0) for i in range(M+1)] for j in range(W+1)],
+                       5: [[float(0) for i in range(M+1)] for j in range(W+1)],
+                       6: [[float(0) for i in range(M+1)] for j in range(W+1)],
+                       7: [[float(0) for i in range(M+1)] for j in range(W+1)],
+                       8: [[float(0) for i in range(M+1)] for j in range(W+1)],
+                       9: [[float(0) for i in range(M+1)] for j in range(W+1)]}
     elif sys.argv[1] == "f":
         ### Files to train from and save training data ###
         trainingDigitFile = "./facedata/facedatatrain"
