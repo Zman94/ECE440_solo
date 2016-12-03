@@ -341,7 +341,7 @@ def main():
     # elif sys.argv[2] == 'l':
     ### q matrix [column][row_ball][row_paddle][x_speed][y_speed]###
     q = [[[[[0 for v in range(3)] for w in range(2)] for x in range(columns)] for y in range(columns)] for z in range(rows)]
-    maxGames = 100000
+    maxGames = 500000
     # else:
     #     print("Please give argument 't' for test or 'l' for learn.")
     #     return
@@ -491,7 +491,7 @@ def main():
     gamesNum = 1
     avgHits = 0
     maxHits = 0
-    graphics = True
+    # graphics = True
     totalWins = 0
 
     while True: #main game loop
