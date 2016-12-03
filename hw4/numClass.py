@@ -7,7 +7,7 @@ import pdb
 
 start_time = time.time()
 
-epochs = 100
+epochs = 50
 curEpoch = 0
 alpha = 1000
 
@@ -34,16 +34,16 @@ def main():
         ### Initialize the training lists with one gray and one black pixel in each location ###
         ### Initialize to one for laplacian smoothing ###
         ### KEY : [Number][row][column] ###
-        trainedList = {0: [[LP for i in range(M)] for j in range(W)],
-                       1: [[LP for i in range(M)] for j in range(W)],
-                       2: [[LP for i in range(M)] for j in range(W)],
-                       3: [[LP for i in range(M)] for j in range(W)],
-                       4: [[LP for i in range(M)] for j in range(W)],
-                       5: [[LP for i in range(M)] for j in range(W)],
-                       6: [[LP for i in range(M)] for j in range(W)],
-                       7: [[LP for i in range(M)] for j in range(W)],
-                       8: [[LP for i in range(M)] for j in range(W)],
-                       9: [[LP for i in range(M)] for j in range(W)]}
+        trainedList = {0: [[float(0) for i in range(M)] for j in range(W)],
+                       1: [[float(0) for i in range(M)] for j in range(W)],
+                       2: [[float(0) for i in range(M)] for j in range(W)],
+                       3: [[float(0) for i in range(M)] for j in range(W)],
+                       4: [[float(0) for i in range(M)] for j in range(W)],
+                       5: [[float(0) for i in range(M)] for j in range(W)],
+                       6: [[float(0) for i in range(M)] for j in range(W)],
+                       7: [[float(0) for i in range(M)] for j in range(W)],
+                       8: [[float(0) for i in range(M)] for j in range(W)],
+                       9: [[float(0) for i in range(M)] for j in range(W)]}
     elif sys.argv[1] == "f":
         ### Files to train from and save training data ###
         trainingDigitFile = "./facedata/facedatatrain"
@@ -81,9 +81,9 @@ def main():
         determine_accuracy_face(testVal, numbers_classified)
         return
     # write_training(output_file, trainedList)
-    # read_testVal(testValueFile, testVal)
-    # test_values(testDigitFile, testVal, trainedList, numbers_classified, classCount, M)
-    # determine_accuracy(testVal, numbers_classified, confusionMatrix)
+    read_testVal(testValueFile, testVal)
+    test_values(testDigitFile, trainedList, numbers_classified, classCount, M)
+    determine_accuracy(testVal, numbers_classified, confusionMatrix)
     # print_odds_ratios(trainedList)
     return
 
@@ -100,13 +100,14 @@ def read_testVal(input_file, testVal):
 def train_network(input_file, trainVal, trainedList, classCount, LP, M):
     global curEpoch
     curEpoch = 0
+    curNumberImage = [[0 for x in range(M)] for y in range(M)]
     for curEpoch in range(epochs):
         correctNum = 0
         trainValNumber = 0
         i = 0 # line in picture
         j = 0 # pixel in line
         with open(input_file) as f:
-            tempWeights = [[0 for x in range(M)] for y in range(M)]
+            tempWeights = [0 for x in range(10)]
             curNumber = int(trainVal[trainValNumber])
             # classCount[curNumber]+=1
             for line in f:
@@ -115,13 +116,21 @@ def train_network(input_file, trainVal, trainedList, classCount, LP, M):
                     if trainValNumber==len(trainVal):
                         print("Error: More Train Values than Train Digits")
                         sys.exit()
-                    classified = classifiedAs(trainedList, tempWeights)
+                    classified = classifyAs(tempWeights)
                     if classified != curNumber:
-                        updateClassWeight(curNumber, classified, trainedList, tempWeights)
+                        # if curEpoch != 0:
+                        #     print(classified, curNumber)
+                        # if classified == 0:
+                        #     print(trainedList[0][10][10], end = " ")
+                        updateClassWeight(curNumber, classified, trainedList, curNumberImage)
+                        # if classified == 0:
+                        #     print(trainedList[0][10][10])
+
                     else:
                         correctNum +=1
                     # print("Classified as", classified, "Real Val", curNumber)
-                    tempWeights = [[0 for x in range(M)] for y in range(M)]
+                    tempWeights = [0 for x in range(10)]
+                    curNumberImage = [[0 for x in range(M)] for y in range(M)]
                     curNumber = int(trainVal[trainValNumber])
                     classCount[curNumber]+=1
                     i = 0
@@ -131,7 +140,9 @@ def train_network(input_file, trainVal, trainedList, classCount, LP, M):
                         continue
                     ### If gray or black, add 1 point to colored ###
                     elif letter == '+' or letter == '#':
-                        tempWeights[i][j] = 1
+                        for x in range(10):
+                            curNumberImage[i][j] = 1
+                            tempWeights[x] += trainedList[x][i][j]
                     j+=1
                 i+=1
         print(correctNum/1.0/len(trainVal))
@@ -148,24 +159,20 @@ def train_network(input_file, trainVal, trainedList, classCount, LP, M):
         # classCount[x]/=normalize_count_number
         # classCount[x] = math.log(classCount[x])
 
-def classifiedAs(trainedList, tempWeights):
+def classifyAs(tempWeights):
     argMax = -1000
-    argCur = 0
     maxClass = 0
     for x in range(10):
-        for y in range(len(trainedList[x])):
-            for z in range(len(trainedList[x][y])):
-                argCur+=tempWeights[y][z]*trainedList[x][y][z]
-        if argCur > argMax:
-            argMax = argCur
+        if tempWeights[x] > argMax:
+            argMax = tempWeights[x]
             maxClass = x
     return maxClass
 
 def updateClassWeight(real, wrong, trainedList, tempWeights):
     for y in range(len(trainedList[real])):
         for x in range(len(trainedList[real][y])):
-            trainedList[real][y][x]+=(alpha/(alpha+curEpoch)*tempWeights[y][x])
-            trainedList[wrong][y][x]-=(alpha/(alpha+curEpoch)*tempWeights[y][x])
+            trainedList[real][y][x]+=(alpha/1.0/(alpha+curEpoch)*tempWeights[y][x])
+            trainedList[wrong][y][x]-=(alpha/1.0/(alpha+curEpoch)*tempWeights[y][x])
 
 def train_network_face(input_file, trainVal, trainedList, LP, W, H):
     trainValNumber = 0
@@ -203,36 +210,6 @@ def train_network_face(input_file, trainVal, trainedList, LP, W, H):
     for x in range(2):
         classCount[x]/=normalize_count_number
         classCount[x] = math.log(classCount[x])
-
-def test_values_face(input_file, testVal, trainedList, numbers_classified, classCount, W, H):
-    ### Start the probabilities at those of probability for a class ###
-    probability_list = list()
-    for x in range(2):
-        probability_list.append(classCount[x])
-    i = 0
-    curNumberlist = 0
-    with open(input_file) as f:
-        for line in f:
-            if i >= H:
-                numbers_classified.append(classify_number_face(probability_list))
-                i = 0
-                curPic = [[" " for x in range(W)] for y in range(H)]
-                for x in range(2):
-                    probability_list[x]=classCount[x]
-                curNumberlist+=1
-
-            for curNumber in range(2):
-                j = 0
-                for letter in line:
-                    if letter == '\n':
-                        continue
-                    elif letter == '#':
-                        probability_list[curNumber]+=math.log(trainedList[curNumber][i][j])
-                    elif letter == ' ':
-                        probability_list[curNumber]+=math.log(1-trainedList[curNumber][i][j])
-                    j+=1
-            i+=1
-        numbers_classified.append(classify_number_face(probability_list))
 
 def classify_number_face(probability_list):
     # print(probability_list)
@@ -275,31 +252,28 @@ def determine_accuracy_face(testVal, numbers_classified):
     print()
     print("Out of " + str(total_numbers) + " total faces, " + str(correct_number) + " faces were correctly classified with an accuracy of ", str(correct_number * 1.0 / total_numbers))
 
-def test_values(input_file, testVal, trainedList, numbers_classified, classCount, M):
+def test_values(input_file, trainedList, numbers_classified, classCount, M):
     ### Start the probabilities at those of probability for a class ###
-    maxPosteriors = [[-500 for x in range(2)] for y in range(10)]
-    minPosteriors = [[0 for x in range(2)] for y in range(10)]
+    # maxPosteriors = [[-500 for x in range(2)] for y in range(10)]
+    # minPosteriors = [[0 for x in range(2)] for y in range(10)]
     curPic = [[" " for x in range(M)] for y in range(M)]
     probability_list = list()
     for x in range(10):
-        # probability_list.append(1)
-        probability_list.append(classCount[x])
-    # probability_list[8]-=15
+        probability_list.append(0)
+        # probability_list.append(classCount[x])
     i = 0
     curNumberlist = 0
     # debuggingCounter = 0
     with open(input_file) as f:
         for line in f:
             if i >= M:
-                probability_list[8]+=7
-                probability_list[5]+=4
                 numbers_classified.append(classify_number(probability_list))
-                if probability_list[int(testVal[curNumberlist])] > maxPosteriors[int(testVal[curNumberlist])][0]:
-                    maxPosteriors[int(testVal[curNumberlist])][1] = curPic
-                    maxPosteriors[int(testVal[curNumberlist])][0] = probability_list[int(testVal[curNumberlist])]
-                if probability_list[int(testVal[curNumberlist])] < minPosteriors[int(testVal[curNumberlist])][0]:
-                    minPosteriors[int(testVal[curNumberlist])][1] = curPic
-                    minPosteriors[int(testVal[curNumberlist])][0] = probability_list[int(testVal[curNumberlist])]
+                # if probability_list[int(testVal[curNumberlist])] > maxPosteriors[int(testVal[curNumberlist])][0]:
+                #     maxPosteriors[int(testVal[curNumberlist])][1] = curPic
+                #     maxPosteriors[int(testVal[curNumberlist])][0] = probability_list[int(testVal[curNumberlist])]
+                # if probability_list[int(testVal[curNumberlist])] < minPosteriors[int(testVal[curNumberlist])][0]:
+                #     minPosteriors[int(testVal[curNumberlist])][1] = curPic
+                #     minPosteriors[int(testVal[curNumberlist])][0] = probability_list[int(testVal[curNumberlist])]
                 # debuggingCounter+=1
                 # if debuggingCounter == 15:
                 #     print(numbers_classified)
@@ -307,9 +281,8 @@ def test_values(input_file, testVal, trainedList, numbers_classified, classCount
                 i = 0
                 curPic = [[" " for x in range(M)] for y in range(M)]
                 for x in range(10):
-                    # probability_list[x]=1
-                    probability_list[x]=classCount[x]
-                # probability_list[8]-=15
+                    probability_list[x]=0
+                    # probability_list[x]=classCount[x]
                 curNumberlist+=1
 
             for curNumber in range(10):
@@ -318,22 +291,17 @@ def test_values(input_file, testVal, trainedList, numbers_classified, classCount
                     if letter == '\n':
                         continue
                     elif letter == '+' or letter == '#':
-                        probability_list[curNumber]+=math.log(trainedList[curNumber][i][j])
-                        curPic[i][j] = letter
-                    elif letter == ' ':
-                        probability_list[curNumber]+=math.log(1-trainedList[curNumber][i][j])
+                        probability_list[curNumber]+=trainedList[curNumber][i][j]
                         curPic[i][j] = letter
                     j+=1
             i+=1
-        probability_list[8]+=7
-        probability_list[5]+=4
         numbers_classified.append(classify_number(probability_list))
-        if probability_list[int(testVal[curNumberlist])] > maxPosteriors[int(testVal[curNumberlist])][0]:
-            maxPosteriors[int(testVal[curNumberlist])][1] = curPic
-            maxPosteriors[int(testVal[curNumberlist])][0] = probability_list[int(testVal[curNumberlist])]
-        if probability_list[int(testVal[curNumberlist])] < minPosteriors[int(testVal[curNumberlist])][0]:
-            minPosteriors[int(testVal[curNumberlist])][1] = curPic
-            minPosteriors[int(testVal[curNumberlist])][0] = probability_list[int(testVal[curNumberlist])]
+        # if probability_list[int(testVal[curNumberlist])] > maxPosteriors[int(testVal[curNumberlist])][0]:
+        #     maxPosteriors[int(testVal[curNumberlist])][1] = curPic
+        #     maxPosteriors[int(testVal[curNumberlist])][0] = probability_list[int(testVal[curNumberlist])]
+        # if probability_list[int(testVal[curNumberlist])] < minPosteriors[int(testVal[curNumberlist])][0]:
+        #     minPosteriors[int(testVal[curNumberlist])][1] = curPic
+        #     minPosteriors[int(testVal[curNumberlist])][0] = probability_list[int(testVal[curNumberlist])]
         # debuggingCounter+=1
         # if debuggingCounter == 15:
         #     print(numbers_classified)
@@ -342,73 +310,73 @@ def test_values(input_file, testVal, trainedList, numbers_classified, classCount
         for x in range(10):
             # probability_list[x]=1
             probability_list[x]=classCount[x]
-        for x in range(10):
-            for y in range(M):
-                for z in range(M):
-                    print(maxPosteriors[x][1][y][z],end="")
-                print(" ",end="")
-                for z in range(M):
-                    print(minPosteriors[x][1][y][z],end="")
-                print()
+        # for x in range(10):
+        #     for y in range(M):
+        #         for z in range(M):
+        #             print(maxPosteriors[x][1][y][z],end="")
+        #         print(" ",end="")
+        #         for z in range(M):
+        #             print(minPosteriors[x][1][y][z],end="")
+        #         print()
 
 def classify_number(probability_list):
     # print(probability_list)
-    max = 0
+    maxprob = 0
     maxNumber = -1
     for number in range(10):
-        if probability_list[number] > max or maxNumber < 0:
+        if probability_list[number] > maxprob or maxNumber < 0:
             maxNumber = number
-            max = probability_list[number]
+            maxprob = probability_list[number]
     return maxNumber
 
 def determine_accuracy(testVal, numbers_classified, confusionMatrix):
     total_numbers = len(testVal)
-    total_per_class = [0.0 for x in range(10)]
+    # total_per_class = [0.0 for x in range(10)]
     correct_number = 0
-    correct_per_class = [0 for x in range(10)]
-    classCountTest = [0 for x in range(10)]
+    # correct_per_class = [0 for x in range(10)]
+    # classCountTest = [0 for x in range(10)]
     for x in range(total_numbers):
         # print(numbers_classified[x],testVal[x])
-        total_per_class[int(testVal[x])]+=1
+        # total_per_class[int(testVal[x])]+=1
         if numbers_classified[x] == int(testVal[x]):
             correct_number+=1
-            correct_per_class[numbers_classified[x]]+=1
+            # correct_per_class[numbers_classified[x]]+=1
 
-        else:
-            int1 = numbers_classified[x]
-            int2 = int(testVal[x])
-            confusionMatrix[int2][int1]+=1
+        # else:
+            # int1 = numbers_classified[x]
+            # int2 = int(testVal[x])
+            # confusionMatrix[int2][int1]+=1
     ### Percentage of numbers from class row classified as class column ###
-    for j in range(10):
-        for i in range(10):
-            confusionMatrix[j][i]/=total_per_class[j]
-            confusionMatrix[j][i]*=1000
-            confusionMatrix[j][i]=int(confusionMatrix[j][i])
-            confusionMatrix[j][i]/=10.0
-    for x in range(10):
-        correct_per_class[x]/=total_per_class[x]
-        correct_per_class[x]*=1000
-        correct_per_class[x]=int(correct_per_class[x])
-        correct_per_class[x]/=10.0
-    print("Each number's accuracy from 0-9 is:")
-    for x in range(10):
-        if x == 0:
-            print("["+str(correct_per_class[x]), end="%, ")
-        elif x == 9:
-            print(correct_per_class[x],end="%]\n")
-        else:
-            print(correct_per_class[x],end="%, ")
-    print()
-    print("The confusion matrix for row true class and column classified as:")
-    for i in range(10):
-        for j in range(10):
-            if j == 0:
-                print("["+str(confusionMatrix[i][j]),end="%, ")
-            elif j == 9:
-                print(confusionMatrix[i][j],end="%]")
-            else:
-                print(confusionMatrix[i][j],end="%, ")
-        print()
+    # for j in range(10):
+    #     for i in range(10):
+    #         confusionMatrix[j][i]/=total_per_class[j]
+    #         confusionMatrix[j][i]*=1000
+    #         confusionMatrix[j][i]=int(confusionMatrix[j][i])
+    #         confusionMatrix[j][i]/=10.0
+    # for x in range(10):
+    #     correct_per_class[x]/=total_per_class[x]
+    #     correct_per_class[x]*=1000
+    #     correct_per_class[x]=int(correct_per_class[x])
+    #     correct_per_class[x]/=10.0
+    # print("Each number's accuracy from 0-9 is:")
+    # for x in range(10):
+    #     if x == 0:
+    #         print("["+str(correct_per_class[x]), end="%, ")
+    #     elif x == 9:
+    #         print(correct_per_class[x],end="%]\n")
+    #     else:
+    #         print(correct_per_class[x],end="%, ")
+    # print()
+    # print("The confusion matrix for row true class and column classified as:")
+    # for i in range(10):
+    #     for j in range(10):
+    #         if j == 0:
+    #             print("["+str(confusionMatrix[i][j]),end="%, ")
+    #         elif j == 9:
+    #             print(confusionMatrix[i][j],end="%]")
+    #         else:
+    #             print(confusionMatrix[i][j],end="%, ")
+    #     print()
     print("Out of " + str(total_numbers) + " total numbers, " + str(correct_number) + " numbers were correctly classified with an accuracy of ", str(correct_number * 1.0 / total_numbers))
 
 def write_training(output_file, data):
