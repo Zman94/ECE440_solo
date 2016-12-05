@@ -27,10 +27,10 @@ rows = 12
 columns = 12
 victory_reward = 1
 failure_reward = -1
-gamma = .95
-alpha = 50.0
+gamma = .97
+alpha = 100.0
 learning_times = [[[[[0 for v in range(3)] for w in range(2)] for x in range(columns)] for y in range(columns)] for z in range(rows)]
-Nc = 5
+Nc = 3
 # to stop the algorithm from processing the a negative on the first state after a failure
 
 #File to store trained list
@@ -117,7 +117,6 @@ def hard_coded_paddle(ball, paddle1):
 
 #Q trained computer player
 def q_paddle(q, cur_state, paddle2):
-    # print(cur_state)
     curminus1 = cur_state[2]-1
     curplus1 = cur_state[2]+1
 
@@ -125,10 +124,6 @@ def q_paddle(q, cur_state, paddle2):
         curminus1 = 0
     if cur_state[2]+1 >= rows:
         curplus1 = rows-1
-    # print("Q is")
-    # print(q[cur_state[0]][cur_state[1]][curminus1][cur_state[3]][cur_state[4]])
-    # print(q[cur_state[0]][cur_state[1]][cur_state[2]][cur_state[3]][cur_state[4]])
-    # print(q[cur_state[0]][cur_state[1]][curplus1][cur_state[3]][cur_state[4]])
 
     randomSample = random.randint(0,2)
     exploring = False
@@ -175,7 +170,7 @@ def q_paddle(q, cur_state, paddle2):
                 max_state = 0
 
     # print("This is max state", max_state)
-    paddle2.y += (max_state*height*.04)
+    paddle2.y += (max_state*height*.06)
     return paddle2
 
 #Displays the current score on the screen
@@ -257,19 +252,10 @@ def eval_q(q, r, prev_state, cur_state):
     max_next_state = max(q[cur_state[0]][cur_state[1]][rowNumplus1][cur_state[3]][cur_state[4]],
                          q[cur_state[0]][cur_state[1]][cur_state[2]][cur_state[3]][cur_state[4]],
                          q[cur_state[0]][cur_state[1]][rowNumminus1][cur_state[3]][cur_state[4]])
-    # max_next_state = max(q[prev_state[0]][prev_state[1]][rowNumplus1][prev_state[3]][prev_state[4]],
-    #                      q[prev_state[0]][prev_state[1]][prev_state[2]][prev_state[3]][prev_state[4]],
-    #                      q[prev_state[0]][prev_state[1]][rowNumminus1][prev_state[3]][prev_state[4]])
 
 
     ### This mess of a line determines the Q value for the last state as based on the lecture algorithm ###
     if prev_state != cur_state:
-        # print(prev_state)
-        # print(cur_state)
-        # print((alpha/(learning_times[prev_state[0]][prev_state[1]][prev_state[2]][prev_state[3]][prev_state[4]]+alpha)))
-        # print(gamma*max_next_state)
-        # print(r[prev_state[0]][prev_state[1]][prev_state[2]][prev_state[3]][prev_state[4]])
-        # print()
         q[prev_state[0]][prev_state[1]][prev_state[2]][prev_state[3]][prev_state[4]] = q[prev_state[0]][prev_state[1]][prev_state[2]][prev_state[3]][prev_state[4]]+(alpha/(learning_times[prev_state[0]][prev_state[1]][prev_state[2]][prev_state[3]][prev_state[4]]+alpha))*(r[prev_state[0]][prev_state[1]][prev_state[2]][prev_state[3]][prev_state[4]]+gamma*max_next_state-q[prev_state[0]][prev_state[1]][prev_state[2]][prev_state[3]][prev_state[4]])
 
 #Save the list in a file
@@ -333,22 +319,23 @@ def main():
     else:
         graphics = False
 
-    # if sys.argv[2] == 't':
-    #     q = load_q_learning()
-    #     Nc = 0
-    #     gamma = .95
-    #     maxGames = 5000
-    # elif sys.argv[2] == 'l':
-    ### q matrix [column][row_ball][row_paddle][x_speed][y_speed]###
-    q = [[[[[0 for v in range(3)] for w in range(2)] for x in range(columns)] for y in range(columns)] for z in range(rows)]
-    maxGames = 500000
-    # else:
-    #     print("Please give argument 't' for test or 'l' for learn.")
-    #     return
+    if sys.argv[2] == 't':
+        q = load_q_learning()
+        Nc = 0
+        gamma = .95
+        maxGames = 5000
+    elif sys.argv[2] == 'l':
+        ### q matrix [column][row_ball][row_paddle][x_speed][y_speed]###
+        q = [[[[[0 for v in range(3)] for w in range(2)] for x in range(rows)] for y in range(rows)] for z in range(columns)]
+        maxGames = 200000
+    else:
+        print("Please give argument 't' for test or 'l' for learn.")
+        return
     testNc = 0
     testMaxGames = 5000
 
-    pygame.init()
+    if graphics:
+        pygame.init()
     ### [ball_x, ball_y, velocity_x, velocity_y, paddle_y] ###
     game_state_tuple = [.5*width, .5*height, .03, .01, .5*height]
 
@@ -376,12 +363,12 @@ def main():
                 q[columns-1][x][y][1][1] = failure_reward
                 q[columns-1][x][y][1][2] = failure_reward
 
-    BASICFONTSIZE = 20
-    BASICFONT = pygame.font.Font('freesansbold.ttf', BASICFONTSIZE)
-
-    FPSCLOCK = pygame.time.Clock()
-    DISPLAYSURF = pygame.display.set_mode((width,height))
-    pygame.display.set_caption('Pong HW4')
+    if graphics:
+        BASICFONTSIZE = 20
+        BASICFONT = pygame.font.Font('freesansbold.ttf', BASICFONTSIZE)
+        FPSCLOCK = pygame.time.Clock()
+        DISPLAYSURF = pygame.display.set_mode((width,height))
+        pygame.display.set_caption('Pong HW4')
 
     #Initiate variable and set starting positions
     #any future changes made within rectangles
@@ -422,17 +409,21 @@ def main():
             # if play_again != 'p':
             #     break
             # print()
-            # print("Game Number",gamesNum)
+            print("Game Number",gamesNum)
             # print()
-            if gamesNum > 90000:
-                graphics == True
+            # if gamesNum > 90000:
+            #     graphics == True
             if gamesNum == maxGames:
                 save_q_learning(q)
-                print("The average number of hits during training was", avgHits/1.0/gamesNum)
-                print("The max number of hits during training was", maxHits)
+                if sys.argv[2] == 'l':
+                    print("The average number of hits during training was", avgHits/1.0/gamesNum)
+                    print("The max number of hits during training was", maxHits)
+                elif sys.argv[2] == 't':
+                    print("The average number of hits during testing was", avgHits/1.0/gamesNum)
+                    print("The max number of hits during testing was", maxHits)
                 if sys.argv[3] == "2":
                     print("The AI agent won", totalWins, "games out of", maxGames)
-                break
+                return
             score = 0
             gamesNum += 1
             resetGame(game_state_tuple)
@@ -491,10 +482,11 @@ def main():
     gamesNum = 1
     avgHits = 0
     maxHits = 0
-    # graphics = True
     totalWins = 0
+    # graphics = True
+    paddle_height1 =.2*height
 
-    while True: #main game loop
+    while True: #test game loop
         if graphics:
             for event in pygame.event.get():
                 if event.type == QUIT:
@@ -514,8 +506,8 @@ def main():
                 save_q_learning(q)
                 print("The average number of hits was", avgHits/1.0/gamesNum)
                 print("The max number of hits was", maxHits)
-                if sys.argv[3] == "2":
-                    print("The AI agent won", totalWins, "games out of", maxGames)
+                # if sys.argv[3] == "2":
+                print("The AI agent won", totalWins, "games out of", maxGames)
                 return
             gamesNum += 1
             resetGame(game_state_tuple)
