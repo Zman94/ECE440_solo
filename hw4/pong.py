@@ -7,7 +7,7 @@ import random
 start_time = time.time()
 
 # Number of frames per second
-FPS = 60
+FPS = 144
 
 #Global Variables to be used through the program
 width = 800
@@ -170,7 +170,7 @@ def q_paddle(q, cur_state, paddle2):
                 max_state = 0
 
     # print("This is max state", max_state)
-    paddle2.y += (max_state*height*.06)
+    paddle2.y += (max_state*height*.04)
     return paddle2
 
 #Displays the current score on the screen
